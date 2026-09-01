@@ -1,93 +1,132 @@
 # cafebazaar-crawler
 
-A powerful tool for collecting and extracting data from the CafeBazaar Android app store, Iran's largest application marketplace.
+A lightweight Python crawler that collects public app metadata from CafeBazaar and stores the results in a local SQLite database.
 
-## Description
+## What it does
 
-CafeBazaarCrawler is a Python script that systematically extracts all categories, subcategories, and applications available in the CafeBazaar app store and collects detailed information about each application. This information includes the name, package name, category, developer, number of installations, rating, number of reviews, and price.
+- Fetches CafeBazaar categories and subcategories
+- Paginates through app lists
+- Fetches detailed metadata for each app
+- Stores results in SQLite with one row per `package_name + source`
+- Captures app name, package, developer info, install count, ratings, category, tags, descriptions, price, version, and update time
+- Retries transient HTTP failures and stops cleanly after repeated failures
+- Skips duplicate packages during a single run
+- Prints a crawl summary on completion or `Ctrl+C`
 
-CafeBazaar is the largest Android application marketplace in Iran with over 40 million users and controlling around 75-97% of the Iranian Android app market. The platform offers thousands of Iranian and international applications, with a focus on delivering content to Persian-speaking users.
+## Requirements
 
-## Features
+- Python 3.9+
+- `requests`
+- `jdatetime`
+- SQLite (included with Python)
 
-- Extract all categories available in CafeBazaar
-- Extract all subcategories of each category
-- Collect the list of applications in each subcategory
-- Extract complete information for each application including:
-  - Basic details (name, package name, version)
-  - Developer information (author name, email, homepage)
-  - Statistics (installation count, ratings, review counts)
-  - Content information (descriptions, categories, tags)
-- Support for pagination to receive all data
-- Store data in an SQLite database with proper indexing
-- Generate a random device ID for each request
-- Apply delays between requests to prevent blocking
+## Quick start
 
-## Prerequisites
-
-- Python 3.7+
-- Required packages in `requirements.txt`:
-  - requests
-  - jdatetime (for Persian calendar conversion)
-  - typing
-  - sqlite3 (included in Python standard library)
-
-## Installation
-
-1. Clone the repository:
-```
+```bash
 git clone https://github.com/AlirezaBelal/cafebazaar-crawler.git
 cd cafebazaar-crawler
+python -m venv .venv
 ```
 
-2. Install dependencies:
-```
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+python src/main.py --max-apps 20
 ```
 
-3. Make sure the required modules are installed:
+macOS / Linux:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+python src/main.py --max-apps 20
 ```
-pip install requests
+
+`--max-apps 20` is a convenient smoke test. Remove the option for a full crawl.
+
+## Usage
+
+Full crawl:
+
+```bash
+python src/main.py
+```
+
+Small controlled run:
+
+```bash
+python src/main.py --category-limit 1 --subcategory-limit 1 --max-apps 20
+```
+
+Write to a custom database:
+
+```bash
+python src/main.py --max-apps 20 --db data/test.db
+```
+
+Show all CLI options:
+
+```bash
+python src/main.py --help
+```
+
+## Output
+
+By default, data is stored at:
+
+```text
+data/cafebazaar_results.db
+```
+
+The crawler uses `INSERT OR REPLACE` with `(package_name, source)` as the primary key, so the same app is updated rather than duplicated in the database.
+
+Quick record count:
+
+```bash
+python -c "import sqlite3; c=sqlite3.connect('data/cafebazaar_results.db'); print(c.execute('select count(*) from app_details').fetchone()[0])"
 ```
 
 ## Configuration
 
-The main settings are located in the `config.py` file:
+Defaults are intentionally conservative to reduce request pressure. They can be overridden with environment variables:
 
-- `DEVICE_ID`: Device ID for requests (automatically generated)
-- `SLEEP_AFTER_EACH_CATEGORIES_IN_MILL_SECONDS`: Delay between category requests (milliseconds)
-- `SLEEP_AFTER_EACH_SUB_CATEGORIES_IN_MILL_SECONDS`: Delay between subcategory requests (milliseconds)
-- `SLEEP_AFTER_EACH_APPS_IN_MILL_SECONDS`: Delay between application requests (milliseconds)
-- `RESULT_FILE`: Path to the database file for storing results
+| Variable | Default | Purpose |
+| --- | ---: | --- |
+| `CAFEBAZAAR_CATEGORY_DELAY_MS` | `10000` | Delay after each category |
+| `CAFEBAZAAR_SUBCATEGORY_DELAY_MS` | `2000` | Delay after each subcategory |
+| `CAFEBAZAAR_APP_DELAY_MS` | `100` | Delay after each app |
+| `CAFEBAZAAR_DATA_DIR` | `./data` | Output directory |
+| `CAFEBAZAAR_DB_PATH` | `./data/cafebazaar_results.db` | Exact SQLite path |
 
-## Usage
+## Database fields
 
-To run the script:
+The `app_details` table includes:
 
+`name`, `package_name`, developer contact fields, `homepage_url`, install count, rating statistics, category/subcategory, update timestamp, tags, price, source, descriptions, and version.
+
+## Tests
+
+Run the local unit tests with:
+
+```bash
+python -m unittest discover -s tests -v
 ```
-python src/main.py
-```
 
-This command:
-1. Extracts all categories available in CafeBazaar
-2. For each category, extracts all subcategories
-3. For each subcategory, extracts the complete list of applications
-4. For each application, extracts its complete information and stores it in the database
+GitHub Actions runs the same tests on supported Python versions for pushes and pull requests.
 
-## Notes
+## Operational notes
 
-- The use of this tool must comply with CafeBazaar's terms of service.
-- To prevent IP blocking, adjust the delay settings according to your needs.
-- This tool is designed for educational and research purposes only.
+- The crawler relies on CafeBazaar web API endpoints and response structures, which may change over time.
+- Network or upstream changes can cause individual requests to fail; transient failures are retried.
+- Pressing `Ctrl+C` stops the crawl without deleting data already written to SQLite.
+- Database files and virtual environments are excluded from Git.
 
-## Contributing
+## Responsible use
 
-Your suggestions and contributions help improve this project. Please create a new Issue or submit a Pull Request to contribute.
+Use this project in accordance with CafeBazaar's terms, applicable laws, and reasonable request rates. This project is not affiliated with or endorsed by CafeBazaar.
 
 ## License
 
-This project is published under the MIT license. For more information, read the `LICENSE` file.
-
-## About CafeBazaar
-
-CafeBazaar (کافه بازار) is the largest Android app store in Iran, established in 2011. It serves as an alternative to Google Play, which has had limited availability in Iran at various times. The platform focuses on Persian-speaking users, providing both local Iranian apps and international applications.
+MIT — see [LICENSE](LICENSE).

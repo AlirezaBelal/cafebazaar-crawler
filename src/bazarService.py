@@ -127,62 +127,47 @@ def fetch_all_subcategories(category_path):
         "sec-fetch-site": "same-site",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
     }
-    initial_payload = {
-        "properties": {
-            "language": 2,
-            "clientID": config.DEVICE_ID,
-            "deviceID": config.DEVICE_ID,
-            "clientVersion": "web"
-        },
-        "singleRequest": {
-            "getPageBodyRequest": {
-                "path": category_path,
-                "offset": 0
-            }
-        }
-    }
 
     all_subcategories = []
     offset = 0
-    more_data = True
+    consecutive_errors = 0
+    max_errors = 3
 
-    while more_data:
-        # Update the payload with the current offset
-        payload = initial_payload
-        payload['singleRequest']['getPageBodyRequest']['offset'] = offset
+    while True:
+        payload = {
+            "properties": {
+                "language": 2,
+                "clientID": config.DEVICE_ID,
+                "deviceID": config.DEVICE_ID,
+                "clientVersion": "web"
+            },
+            "singleRequest": {
+                "getPageBodyRequest": {
+                    "path": category_path,
+                    "offset": offset
+                }
+            }
+        }
 
-        # Make the API call with retry mechanism
         try:
             session = get_session()
             response = session.post(api_url, headers=headers, json=payload, timeout=30)
+            response.raise_for_status()
+            consecutive_errors = 0
 
-            # Check if the response is successful
-            if response.status_code == 200:
-                data = response.json()
+            subcategories = extract_subcategories(response.json())
+            if not subcategories:
+                break
 
-                # Extract the relevant subcategories from the response
-                subcategories = extract_subcategories(data)
-                all_subcategories.extend(subcategories)
-
-                # Check if there's more data
-                if len(subcategories) > 0:
-                    offset += len(subcategories)  # Increment offset for the next page
-                else:
-                    more_data = False  # No more data to fetch, exit loop
-            else:
-                print(f"Failed to fetch data, status code: {response.status_code}")
-                more_data = False  # Stop fetching on failure
-
-            # Add a small random delay to avoid rate limiting
+            all_subcategories.extend(subcategories)
+            offset += len(subcategories)
             time.sleep(random.uniform(0.5, 1.5))
-
-        except Exception as e:
-            print(f"Error fetching subcategories: {e}")
-            # Wait a bit longer after an error
+        except Exception as exc:
+            consecutive_errors += 1
+            print(f"Error fetching subcategories ({consecutive_errors}/{max_errors}): {exc}")
+            if consecutive_errors >= max_errors:
+                break
             time.sleep(random.uniform(2, 5))
-            # If we've had too many errors, give up
-            if offset > 1000:  # Arbitrary limit to prevent infinite loops
-                more_data = False
 
     return all_subcategories
 
@@ -332,7 +317,7 @@ def extract_apps(response_data):
 def extract_apps_from_page_request(response_data):
     # Extract relevant app information from 'pageBodyInfo -> pageBody -> rows'
     apps = []
-    rows = response_data.get('singleReply', {}).get('getPageBodyReply', {}).get('pageBody', {}).get('rows', {})
+    rows = response_data.get('singleReply', {}).get('getPageBodyReply', {}).get('pageBody', {}).get('rows', [])
 
     for row in rows:
         if 'simpleAppItem' in row and 'info' in row['simpleAppItem']:
@@ -402,22 +387,17 @@ def fetch_app_details(package_name, subcategory):
             print(f"Retrying in {sleep_time:.2f} seconds...")
             time.sleep(sleep_time)
 
-    # If we've exhausted all retries, create a dummy AppDetails object
     print(f"Failed to fetch details for {package_name} after {max_retries} attempts")
-    dummy_app = AppDetails(
-        name=f"Unable to fetch: {package_name}",
-        package_name=package_name,
-        category="unknown",
-        sub_category=subcategory,
-        source=Source.BAZAR
-    )
-    return dummy_app
+    return None
 
 
 def extract_app_details(app_data, subcategory):
-    # Navigate to the app's details in the JSON structure
-    app_details = app_data.get('singleReply', {}).get('appDetailsV2Reply', {}).get('meta', {})
-    app_from_dict = AppDetails.from_dict(app_data.get('singleReply', {}).get('appDetailsV2Reply', {}), Source.BAZAR, [],
-                                         subcategory)
+    reply = app_data.get('singleReply', {}).get('appDetailsV2Reply', {})
+    tags = [
+        tag.get('title')
+        for tag in reply.get('meta', {}).get('tags', [])
+        if tag.get('title')
+    ]
+    app_from_dict = AppDetails.from_dict(reply, Source.BAZAR, tags, subcategory)
     app_from_dict.save_to_db(config.RESULT_FILE)
     return app_from_dict

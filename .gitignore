@@ -3,7 +3,14 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Virtual environments
+.venv/
+venv/
 env/
+ENV/
+
+# Packaging
 build/
 develop-eggs/
 dist/
@@ -19,23 +26,28 @@ var/
 .installed.cfg
 *.egg
 
-
+# Runtime data / databases
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
 *.sqlite
+data/*
+!data/.gitkeep
+src/data/
 
-venv/
-ENV/
+# Environment and local config
 .env
+config.ini
 
-
+# IDEs and editors
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-
+# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -44,13 +56,7 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
-
+# Logs
 *.log
 log/
 logs/
-
-data/*
-!data/.gitkeep
-
-config.ini
-result.db
