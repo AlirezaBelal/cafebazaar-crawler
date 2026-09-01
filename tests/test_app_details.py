@@ -2,6 +2,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -28,7 +29,7 @@ class AppDetailsTests(unittest.TestCase):
                 source=Source.BAZAR,
             ).save_to_db(db_path)
 
-            with sqlite3.connect(db_path) as connection:
+            with closing(sqlite3.connect(db_path)) as connection:
                 count = connection.execute(
                     "SELECT COUNT(*) FROM app_details"
                 ).fetchone()[0]
