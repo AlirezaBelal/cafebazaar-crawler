@@ -2,6 +2,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -39,7 +40,7 @@ class BazarServiceTests(unittest.TestCase):
                 self.assertEqual(app.package_name, "com.example.weather")
                 self.assertEqual(app.tags, ["weather", "forecast"])
 
-                with sqlite3.connect(config.RESULT_FILE) as connection:
+                with closing(sqlite3.connect(config.RESULT_FILE)) as connection:
                     row = connection.execute(
                         "SELECT package_name, tags FROM app_details"
                     ).fetchone()
