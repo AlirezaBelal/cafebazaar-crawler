@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Dict, List
 
 
-
 class Source(Enum):
     BAZAR = "bazar"
     MYKET = "myket"
@@ -129,8 +128,9 @@ class AppDetails:
         db_path = Path(db_name)
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with sqlite3.connect(db_path) as connection:
-            cursor = connection.cursor()
+        connection = sqlite3.connect(db_path)
+        cursor = connection.cursor()
+        try:
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS app_details (
@@ -201,3 +201,10 @@ class AppDetails:
                     self.version,
                 ),
             )
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            cursor.close()
+            connection.close()
