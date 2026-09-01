@@ -2,7 +2,6 @@ import sqlite3
 import sys
 import tempfile
 import unittest
-from contextlib import closing
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -29,14 +28,19 @@ class AppDetailsTests(unittest.TestCase):
                 source=Source.BAZAR,
             ).save_to_db(db_path)
 
-            with closing(sqlite3.connect(db_path)) as connection:
-                count = connection.execute(
-                    "SELECT COUNT(*) FROM app_details"
-                ).fetchone()[0]
-                name = connection.execute(
+            connection = sqlite3.connect(db_path)
+            cursor = connection.cursor()
+            try:
+                cursor.execute("SELECT COUNT(*) FROM app_details")
+                count = cursor.fetchone()[0]
+                cursor.execute(
                     "SELECT name FROM app_details WHERE package_name = ?",
                     ("com.example.app",),
-                ).fetchone()[0]
+                )
+                name = cursor.fetchone()[0]
+            finally:
+                cursor.close()
+                connection.close()
 
             self.assertEqual(count, 1)
             self.assertEqual(name, "Updated")
