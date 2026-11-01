@@ -110,7 +110,7 @@ def get_cafebazaar_categories():
     return []  # Return an empty list in case of errors
 
 
-def fetch_all_subcategories(category_path):
+def fetch_all_subcategories(category_path, max_pages=0):
     api_url = "https://api.cafebazaar.ir/rest-v1/process/GetPageBodyRequest"
     headers = {
         "accept": "application/json, text/plain, */*",
@@ -133,8 +133,9 @@ def fetch_all_subcategories(category_path):
     offset = 0
     consecutive_errors = 0
     max_errors = 3
+    pages_fetched = 0
 
-    while True:
+    while max_pages == 0 or pages_fetched < max_pages:
         payload = {
             "properties": {
                 "language": 2,
@@ -155,6 +156,7 @@ def fetch_all_subcategories(category_path):
             response = session.post(api_url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
             consecutive_errors = 0
+            pages_fetched += 1
 
             subcategories = extract_subcategories(response.json())
             if not subcategories:
@@ -198,7 +200,7 @@ def extract_subcategories(response_data):
     return subcategories
 
 
-def fetch_all_apps(subcategory_path):
+def fetch_all_apps(subcategory_path, max_pages=0):
     api_url_v2 = "https://api.cafebazaar.ir/rest-v1/process/GetPageV2Request"
     api_url_body = "https://api.cafebazaar.ir/rest-v1/process/GetPageBodyRequest"
     headers = {
@@ -223,12 +225,14 @@ def fetch_all_apps(subcategory_path):
     offset = 0
     apps, offset = fetch_initial_page(api_url_v2, headers, subcategory_path)
     all_apps.extend(apps)
+    pages_fetched = 1
     if apps:
         seen_pages.add(tuple(str(item.get("packageName", "")) for item in apps))
 
     # Stage 2: Fetch subsequent pages using GetPageBodyRequest and offset
-    while offset is not None:
+    while offset is not None and (max_pages == 0 or pages_fetched < max_pages):
         apps, next_offset = fetch_next_page(api_url_body, headers, subcategory_path, offset)
+        pages_fetched += 1
         if not apps:
             break
         signature = tuple(str(item.get("packageName", "")) for item in apps)
