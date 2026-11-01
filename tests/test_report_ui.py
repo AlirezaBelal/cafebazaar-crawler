@@ -1,5 +1,6 @@
 """Offline acceptance checks for the premium Persian report UI."""
 import sys
+from contextlib import closing
 import tempfile
 import unittest
 from html.parser import HTMLParser
@@ -104,7 +105,7 @@ class ReportDesignTests(unittest.TestCase):
             AppDetails(name="Temporary", package_name="temporary",
                        source=Source.BAZAR).save_to_db(str(db))
             import sqlite3
-            with sqlite3.connect(db) as connection:
+            with closing(sqlite3.connect(db)) as connection:
                 connection.execute("DELETE FROM app_details")
             self.assertEqual(create_report(db, report), 0)
             markup = report.read_text(encoding="utf-8")
