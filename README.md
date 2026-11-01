@@ -10,6 +10,7 @@ A lightweight Python crawler that collects public app metadata from CafeBazaar a
 - Stores results in SQLite with one row per `package_name + source`
 - Captures app name, package, developer info, install count, ratings, category, tags, descriptions, price, version, and update time
 - Retries transient HTTP failures and stops cleanly after repeated failures
+- Stops pagination when the API repeats an already seen page, avoiding unbounded duplicate requests
 - Skips duplicate packages during a single run
 - Prints a crawl summary on completion or `Ctrl+C`
 

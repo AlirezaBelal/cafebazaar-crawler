@@ -129,6 +129,7 @@ def fetch_all_subcategories(category_path):
     }
 
     all_subcategories = []
+    seen_pages = set()
     offset = 0
     consecutive_errors = 0
     max_errors = 3
@@ -159,6 +160,13 @@ def fetch_all_subcategories(category_path):
             if not subcategories:
                 break
 
+            # A misbehaving API may ignore the offset and return the same page.
+            # Stop instead of issuing unbounded duplicate requests.
+            signature = tuple((item["path"], item["title"]) for item in subcategories)
+            if signature in seen_pages:
+                print("Repeated subcategory page; stopping pagination.")
+                break
+            seen_pages.add(signature)
             all_subcategories.extend(subcategories)
             offset += len(subcategories)
             time.sleep(random.uniform(0.5, 1.5))
@@ -209,16 +217,27 @@ def fetch_all_apps(subcategory_path):
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
     }
     all_apps = []
+    seen_pages = set()
 
     # Stage 1: Fetch the first page using GetPageV2Request
     offset = 0
     apps, offset = fetch_initial_page(api_url_v2, headers, subcategory_path)
     all_apps.extend(apps)
+    if apps:
+        seen_pages.add(tuple(str(item.get("packageName", "")) for item in apps))
 
     # Stage 2: Fetch subsequent pages using GetPageBodyRequest and offset
     while offset is not None:
-        apps, offset = fetch_next_page(api_url_body, headers, subcategory_path, offset)
+        apps, next_offset = fetch_next_page(api_url_body, headers, subcategory_path, offset)
+        if not apps:
+            break
+        signature = tuple(str(item.get("packageName", "")) for item in apps)
+        if signature in seen_pages:
+            print("Repeated app page; stopping pagination.")
+            break
+        seen_pages.add(signature)
         all_apps.extend(apps)
+        offset = next_offset
 
         # Add a small random delay between requests
         time.sleep(random.uniform(0.5, 1.0))
