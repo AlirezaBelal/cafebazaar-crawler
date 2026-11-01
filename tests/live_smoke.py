@@ -4,6 +4,7 @@ Runs only when called with --yes-live. Never part of automated CI.
 Uses a disposable SQLite database and limits every listing to a single page.
 """
 import argparse
+from contextlib import closing
 import sqlite3
 import sys
 import tempfile
@@ -47,7 +48,7 @@ def main():
             app = bazarService.fetch_app_details(packages[0], "smoke-test")
             if app is None or app.package_name != packages[0] or not app.name.strip():
                 raise RuntimeError("App detail API was unavailable or incomplete")
-            with sqlite3.connect(config.RESULT_FILE) as connection:
+            with closing(sqlite3.connect(config.RESULT_FILE)) as connection:
                 stored = connection.execute(
                     "SELECT package_name, name FROM app_details WHERE package_name = ?",
                     (packages[0],),
