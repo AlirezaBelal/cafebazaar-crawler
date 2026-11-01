@@ -23,11 +23,20 @@ MAX_REPORT_ROWS = 1000
 
 
 def create_demo(db_path: Path) -> int:
-    """Create three unmistakably fictional apps in a caller-selected database."""
+    """Create twelve unmistakably fictional apps in a caller-selected database."""
     examples = (
-        ("ir.example.demo.weather", "آب‌وهوای نمونه", "weather", 12000, 4.4, "1.2"),
-        ("ir.example.demo.notes", "دفترچهٔ نمونه", "productivity", 5300, 4.1, "2.0"),
-        ("ir.example.demo.learn", "آموزش نمونه", "education", 850, 4.8, "0.9"),
+        ("ir.example.demo.weather", "آب‌نمای روز", "آب‌وهوا", 125000, 4.7, "2.4"),
+        ("ir.example.demo.notes", "یادداشت‌یار", "بهره‌وری", 83500, 4.5, "3.1"),
+        ("ir.example.demo.learn", "کلاس‌خانه", "آموزش", 72000, 4.8, "1.9"),
+        ("ir.example.demo.budget", "حساب‌بان", "مالی", 45000, 4.2, "2.2"),
+        ("ir.example.demo.maps", "مسیرنما", "سفر", 198000, 4.6, "4.0"),
+        ("ir.example.demo.music", "آوای من", "سرگرمی", 335000, 4.4, "2.7"),
+        ("ir.example.demo.read", "کتابک", "آموزش", 66500, 4.9, "1.5"),
+        ("ir.example.demo.focus", "تمرکز پلاس", "بهره‌وری", 21800, 4.3, "1.4"),
+        ("ir.example.demo.food", "آشپزباشی", "سبک زندگی", 164000, 4.5, "3.0"),
+        ("ir.example.demo.fit", "تندرست", "سلامت", 57000, 4.7, "2.8"),
+        ("ir.example.demo.puzzle", "پازلستان", "سرگرمی", 291000, 4.1, "5.1"),
+        ("ir.example.demo.travel", "سفرنامه", "سفر", 38200, 4.6, "1.8"),
     )
     if Path(db_path).exists():
         raise FileExistsError("Demo destination already exists; choose a new --db path")
@@ -107,9 +116,6 @@ def create_report(db_path: Path, output: Path, limit: int = 500) -> int:
     installs = sum(int(row.get("installation_count") or 0) for row in rows)
     ratings = [float(row["average_score"]) for row in rows if row.get("average_score")]
     mean = sum(ratings) / len(ratings) if ratings else 0.0
-
-    def e(value):
-        return html.escape("" if value is None else str(value), quote=True)
 
     # The HTML remains a single self-contained, offline file. No external fonts,
     # images, scripts, data sources, or local servers are required.
