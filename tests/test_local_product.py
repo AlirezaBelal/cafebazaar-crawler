@@ -21,7 +21,7 @@ from models.AppDetails import AppDetails, Source
 
 
 class LocalProductTests(unittest.TestCase):
-    def test_demo_creates_three_fictional_apps_and_a_searchable_report(self):
+    def test_demo_creates_twelve_fictional_apps_and_a_searchable_report(self):
         with tempfile.TemporaryDirectory() as folder:
             database = Path(folder) / "demo.db"
             report = Path(folder) / "demo-report.html"
@@ -41,7 +41,7 @@ class LocalProductTests(unittest.TestCase):
             with closing(sqlite3.connect(database)) as conn:
                 self.assertEqual(
                     conn.execute("SELECT COUNT(*) FROM app_details").fetchone()[0],
-                    3,
+                    12,
                 )
             # Rerunning --demo must not append synthetic rows to an existing DB.
             with patch.object(sys, "argv", [
@@ -92,9 +92,9 @@ class LocalProductTests(unittest.TestCase):
             try:
                 os.chdir(folder)
                 db = Path("data") / "demo-relative.db"
-                self.assertEqual(create_demo(db), 3)
+                self.assertEqual(create_demo(db), 12)
                 report = Path("data") / "demo-relative-report.html"
-                self.assertEqual(create_report(db, report), 3)
+                self.assertEqual(create_report(db, report), 12)
                 self.assertTrue(report.exists())
             finally:
                 os.chdir(previous)
