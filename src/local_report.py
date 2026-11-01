@@ -7,6 +7,7 @@ import csv
 import html
 import sqlite3
 from collections import Counter
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
@@ -28,6 +29,8 @@ def create_demo(db_path: Path) -> int:
         ("ir.example.demo.notes", "دفترچهٔ نمونه", "productivity", 5300, 4.1, "2.0"),
         ("ir.example.demo.learn", "آموزش نمونه", "education", 850, 4.8, "0.9"),
     )
+    if Path(db_path).exists():
+        raise FileExistsError("Demo destination already exists; choose a new --db path")
     for package, name, category, installs, score, version in examples:
         AppDetails(
             package_name=package, name=name, category=category,
@@ -44,7 +47,7 @@ def _read_rows(db_path: Path, limit: int = 0) -> List[Dict]:
     if not path.is_file():
         raise ValueError("SQLite file does not exist: {}".format(path))
     # Read-only mode: do not create an empty database as a side effect.
-    with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True) as connection:
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as connection:
         connection.row_factory = sqlite3.Row
         found = {row[1] for row in connection.execute("PRAGMA table_info(app_details)")}
         missing = set(COLUMNS) - found
@@ -176,16 +179,16 @@ footer{margin-top:28px;color:#63758b;font-size:12px;line-height:2}
 <h1>گزارش برنامه‌های کافه‌بازار</h1>
 <p class="lead">نمای خواندنی از داده‌های پایگاه SQLite محلی شما. تعداد نصب‌ها ممکن است تخمینی باشد و به معنی کاربران فعال نیست.</p>
 <section class="stats" aria-label="خلاصه">
-<div class="card"><span>برنامه‌های نمایش‌داده‌شده</span><strong>{count}</strong></div>
-<div class="card"><span>دسته‌بندی‌ها</span><strong>{categories}</strong></div>
-<div class="card"><span>جمع تعداد نصب گزارش‌شده</span><strong>{installs}</strong></div>
-<div class="card"><span>میانگین امتیازهای ثبت‌شده</span><strong>{mean}</strong></div>
+<div class="card"><span>برنامه‌های نمایش‌داده‌شده</span><strong>__REPORT_COUNT__</strong></div>
+<div class="card"><span>دسته‌بندی‌ها</span><strong>__REPORT_CATEGORIES__</strong></div>
+<div class="card"><span>جمع تعداد نصب گزارش‌شده</span><strong>__REPORT_INSTALLS__</strong></div>
+<div class="card"><span>میانگین امتیازهای ثبت‌شده</span><strong>__REPORT_MEAN__</strong></div>
 </section>
-<section class="panel"><h2>دسته‌بندی‌های پرتکرار</h2><p class="meta">{top}</p><p class="meta">{cutoff}</p></section>
+<section class="panel"><h2>دسته‌بندی‌های پرتکرار</h2><p class="meta">__REPORT_TOP__</p><p class="meta">__REPORT_CUTOFF__</p></section>
 <section class="panel">
 <div class="controls"><h2>فهرست برنامه‌ها</h2><label for="search">جست‌وجوی محلی <input id="search" type="search" placeholder="نام، شناسه یا دسته‌بندی"></label></div>
 <div class="scroll"><table id="apps"><thead><tr><th>برنامه / شناسه</th><th>دسته‌بندی</th><th>نصب</th><th>امتیاز</th><th>نسخه</th><th>آخرین به‌روزرسانی</th></tr></thead>
-<tbody>{rows}</tbody></table></div>
+<tbody>__REPORT_ROWS__</tbody></table></div>
 <p id="empty" class="meta" role="status" hidden>نتیجه‌ای برای این عبارت پیدا نشد.</p>
 </section>
 <footer>ایجادشده توسط CafeBazaar Crawler · فایل HTML مستقل و محلی · اطلاعات توسعه‌دهندگان و تماس در این نما نمایش داده نمی‌شوند.</footer>
@@ -196,11 +199,17 @@ const rows=Array.from(document.querySelectorAll('#apps tbody tr'));
 const empty=document.getElementById('empty');
 input.addEventListener('input',()=>{const q=input.value.trim().toLocaleLowerCase();let found=0;for(const row of rows){const ok=row.textContent.toLocaleLowerCase().includes(q);row.hidden=!ok;if(ok)found++;}empty.hidden=found!==0;});
 </script>
-</body></html>""".format(
-        count=e(_format_int(total)), categories=e(_format_int(len(categories))),
-        installs=e(_format_int(installs)), mean=e("{:.1f}".format(mean)),
-        top=top_categories, cutoff=e(cutoff), rows="\n".join(table_rows),
-    )
+</body></html>"""
+    for token, value in (
+        ("__REPORT_COUNT__", e(_format_int(total))),
+        ("__REPORT_CATEGORIES__", e(_format_int(len(categories)))),
+        ("__REPORT_INSTALLS__", e(_format_int(installs))),
+        ("__REPORT_MEAN__", e("{:.1f}".format(mean))),
+        ("__REPORT_TOP__", top_categories),
+        ("__REPORT_CUTOFF__", e(cutoff)),
+        ("__REPORT_ROWS__", "\\n".join(table_rows)),
+    ):
+        page = page.replace(token, value)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page, encoding="utf-8")
