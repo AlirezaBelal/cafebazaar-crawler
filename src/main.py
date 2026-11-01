@@ -1,15 +1,45 @@
 import argparse
+import sqlite3
+import sys
 import traceback
 from pathlib import Path
 from time import sleep
 
 import bazarService
 import config
+from local_report import create_demo, create_report, export_csv
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Crawl CafeBazaar app metadata and store it in SQLite."
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--demo",
+        action="store_true",
+        help="Generate synthetic demo data and an offline HTML report (no network).",
+    )
+    mode.add_argument(
+        "--report",
+        metavar="REPORT.html",
+        help="Create a searchable offline HTML report from --db (no network).",
+    )
+    mode.add_argument(
+        "--export-csv",
+        metavar="APPS.csv",
+        help="Export selected SQLite metadata fields to a safe CSV (no network).",
+    )
+    mode.add_argument(
+        "--full",
+        action="store_true",
+        help="Explicitly request a full, unbounded network crawl.",
+    )
+    parser.add_argument(
+        "--report-limit",
+        type=int,
+        default=500,
+        help="Maximum rows included in a local HTML report (1..1000).",
     )
     parser.add_argument(
         "--max-apps",
@@ -47,6 +77,8 @@ def parse_args():
         help="SQLite output path. Defaults to data/cafebazaar_results.db.",
     )
     args = parser.parse_args()
+    if not 1 <= args.report_limit <= 1000:
+        parser.error("--report-limit must be between 1 and 1000")
     for name in ("max_apps", "category_limit", "subcategory_limit",
                  "max_list_pages", "max_subcategory_pages"):
         if getattr(args, name) < 0:
@@ -169,8 +201,39 @@ def run(args):
 
 def main():
     args = parse_args()
-    raise SystemExit(run(args))
+    try:
+        if args.demo:
+            # Never mix synthetic app records into the default real-data database.
+            db_path = (Path(args.db) if args.db != config.RESULT_FILE
+                       else config.DATA_DIR / "demo.db")
+            count = create_demo(db_path)
+            report_path = db_path.with_name(db_path.stem + "-report.html")
+            create_report(db_path, report_path, args.report_limit)
+            print("Created {} synthetic DEMO apps in {}".format(count, db_path))
+            print("Open the local HTML report:", report_path)
+            return 0
+        if args.report:
+            count = create_report(Path(args.db), Path(args.report), args.report_limit)
+            print("Wrote an offline HTML report with {} apps to {}".format(count, args.report))
+            return 0
+        if args.export_csv:
+            count = export_csv(Path(args.db), Path(args.export_csv))
+            print("Exported {} apps to {}".format(count, args.export_csv))
+            return 0
+        if not args.full and not any((
+            args.max_apps, args.category_limit, args.subcategory_limit,
+            args.max_list_pages, args.max_subcategory_pages,
+        )):
+            print("No network request made. Try --demo or run a bounded crawl:")
+            print("python src/main.py --category-limit 1 --subcategory-limit 1 "
+                  "--max-apps 5 --max-list-pages 1 --max-subcategory-pages 1")
+            print("Use --full only after confirming that unlimited crawling is appropriate.")
+            return 0
+        return run(args)
+    except (FileExistsError, ValueError, OSError, sqlite3.DatabaseError) as exc:
+        print("Error: {}".format(exc), file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
