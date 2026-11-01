@@ -11,6 +11,40 @@ import config
 
 
 class BazarServiceTests(unittest.TestCase):
+    def test_request_session_is_closed_on_success_and_failure(self):
+        from unittest.mock import Mock, patch
+        for failure in (None, OSError("connection failed")):
+            session = Mock()
+            session.post.side_effect = failure
+            with patch.object(bazarService, "get_session", return_value=session):
+                if failure:
+                    with self.assertRaises(OSError):
+                        bazarService._post("https://example.test", timeout=30)
+                else:
+                    self.assertIs(bazarService._post("https://example.test", timeout=30),
+                                  session.post.return_value)
+            session.close.assert_called_once()
+
+    def test_malformed_subcategory_responses_stop_after_three_attempts(self):
+        from unittest.mock import Mock, patch
+        session = Mock()
+        session.post.return_value.json.return_value = {"singleReply": None}
+        with patch.object(bazarService, "get_session", return_value=session), \
+                patch.object(bazarService.time, "sleep"):
+            self.assertEqual(bazarService.fetch_all_subcategories("test"), [])
+        self.assertEqual(session.post.call_count, 3)
+
+    def test_missing_package_is_rejected_without_creating_database(self):
+        with tempfile.TemporaryDirectory() as folder:
+            from unittest.mock import patch
+            database = Path(folder) / "invalid.db"
+            with patch.object(config, "RESULT_FILE", str(database)):
+                for reply in ({}, {"package": {}}, {"package": None}):
+                    with self.assertRaises(ValueError):
+                        bazarService.extract_app_details(
+                            {"singleReply": {"appDetailsV2Reply": reply}}, "test")
+            self.assertFalse(database.exists())
+
     def test_extract_app_details_persists_tags_and_package(self):
         payload = {
             "singleReply": {

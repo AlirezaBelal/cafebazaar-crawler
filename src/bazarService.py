@@ -25,6 +25,16 @@ def get_session():
     return session
 
 
+def _post(url, **kwargs):
+    # Requests eagerly loads the response body; release the connection pool even
+    # when a request fails, before parsing or persisting the response.
+    session = get_session()
+    try:
+        return session.post(url, **kwargs)
+    finally:
+        session.close()
+
+
 def get_cafebazaar_categories():
     """
     Fetches all categories from the CafeBazaar Android app store.
@@ -67,8 +77,7 @@ def get_cafebazaar_categories():
     }
 
     try:
-        session = get_session()
-        response = session.post(url, headers=headers, json=payload, timeout=30)
+        response = _post(url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
         data = response.json()
@@ -152,13 +161,12 @@ def fetch_all_subcategories(category_path, max_pages=0):
         }
 
         try:
-            session = get_session()
-            response = session.post(api_url, headers=headers, json=payload, timeout=30)
+            response = _post(api_url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
-            consecutive_errors = 0
             pages_fetched += 1
 
             subcategories = extract_subcategories(response.json())
+            consecutive_errors = 0
             if not subcategories:
                 break
 
@@ -267,8 +275,7 @@ def fetch_initial_page(api_url_v2, headers, subcategory_path):
     }
 
     try:
-        session = get_session()
-        response = session.post(api_url_v2, headers=headers, json=payload, timeout=30)
+        response = _post(api_url_v2, headers=headers, json=payload, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
@@ -305,8 +312,7 @@ def fetch_next_page(api_url_body, headers, subcategory_path, offset):
     }
 
     try:
-        session = get_session()
-        response = session.post(api_url_body, headers=headers, json=payload, timeout=30)
+        response = _post(api_url_body, headers=headers, json=payload, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
@@ -387,8 +393,7 @@ def fetch_app_details(package_name, subcategory):
 
     for attempt in range(max_retries):
         try:
-            session = get_session()
-            response = session.post(api_url, headers=headers, json=payload, timeout=30, verify=True)
+            response = _post(api_url, headers=headers, json=payload, timeout=30, verify=True)
 
             # Check if the response was successful
             if response.status_code == 200:
@@ -416,6 +421,11 @@ def fetch_app_details(package_name, subcategory):
 
 def extract_app_details(app_data, subcategory):
     reply = app_data.get('singleReply', {}).get('appDetailsV2Reply', {})
+    if not isinstance(reply, dict) or not isinstance(reply.get('package'), dict):
+        raise ValueError("App details response has no package")
+    package_name = reply['package'].get('name')
+    if not isinstance(package_name, str) or not package_name.strip():
+        raise ValueError("App details response has no valid package name")
     tags = [
         tag.get('title')
         for tag in reply.get('meta', {}).get('tags', [])
