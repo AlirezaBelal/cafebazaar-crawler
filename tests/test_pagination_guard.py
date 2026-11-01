@@ -14,16 +14,12 @@ class PaginationGuardTests(unittest.TestCase):
     def test_repeated_app_page_stops_without_collecting_duplicates(self):
         first = [{"packageName": "com.example.one"}]
         next_page = [{"packageName": "com.example.two"}]
-        with (
-            patch.object(bazarService, "fetch_initial_page", return_value=(first, 1)),
-            patch.object(
-                bazarService,
-                "fetch_next_page",
-                side_effect=[(next_page, 2), (first, 3)],
-            ) as fetch_next,
-            patch.object(bazarService.time, "sleep"),
-        ):
-            apps = bazarService.fetch_all_apps("test/category")
+        with patch.object(bazarService, "fetch_initial_page", return_value=(first, 1)):
+            with patch.object(bazarService, "fetch_next_page", side_effect=[
+                (next_page, 2), (first, 3),
+            ]) as fetch_next:
+                with patch.object(bazarService.time, "sleep"):
+                    apps = bazarService.fetch_all_apps("test/category")
 
         self.assertEqual([app["packageName"] for app in apps], [
             "com.example.one", "com.example.two",
@@ -50,11 +46,9 @@ class PaginationGuardTests(unittest.TestCase):
         }
         session = MagicMock()
         session.post.return_value = response
-        with (
-            patch.object(bazarService, "get_session", return_value=session),
-            patch.object(bazarService.time, "sleep"),
-        ):
-            subcategories = bazarService.fetch_all_subcategories("apps")
+        with patch.object(bazarService, "get_session", return_value=session):
+            with patch.object(bazarService.time, "sleep"):
+                subcategories = bazarService.fetch_all_subcategories("apps")
 
         self.assertEqual(subcategories, [
             {"title": "Utilities", "path": "apps/utilities"},
