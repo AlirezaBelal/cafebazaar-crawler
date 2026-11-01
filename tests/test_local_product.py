@@ -21,6 +21,30 @@ from models.AppDetails import AppDetails, Source
 
 
 class LocalProductTests(unittest.TestCase):
+    def test_exports_cannot_destroy_source_database(self):
+        with tempfile.TemporaryDirectory() as folder:
+            db = Path(folder) / "demo.db"
+            create_demo(db)
+            original = db.read_bytes()
+            for export in (create_report, export_csv):
+                with self.subTest(export=export.__name__):
+                    with self.assertRaises(ValueError):
+                        export(db, db)
+                    self.assertEqual(db.read_bytes(), original)
+                    with self.assertRaises(ValueError):
+                        export(db, Path(folder) / "other.sqlite3")
+
+    def test_category_template_tokens_are_literal_data(self):
+        with tempfile.TemporaryDirectory() as folder:
+            db = Path(folder) / "data.db"
+            AppDetails(name="Literal", package_name="ir.test",
+                       category="__REPORT_ROWS__", source=Source.BAZAR).save_to_db(db)
+            output = Path(folder) / "report.html"
+            create_report(db, output)
+            page = output.read_text(encoding="utf-8")
+            self.assertIn('<option value="__REPORT_ROWS__">__REPORT_ROWS__</option>', page)
+            self.assertEqual(page.count('<tr data-name='), 1)
+
     def test_demo_creates_twelve_fictional_apps_and_a_searchable_report(self):
         with tempfile.TemporaryDirectory() as folder:
             database = Path(folder) / "demo.db"

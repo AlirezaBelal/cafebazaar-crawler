@@ -100,6 +100,17 @@ data/                      Ignored local datasets and reports
 
 ## Project status and licensing
 
+### Troubleshooting and browser checks
+
+- An existing demo database is deliberately preserved. Choose a fresh `--db data/demo-2.db` path.
+- Report and CSV destinations must differ from the source database and must not use `.db`, `.sqlite` or `.sqlite3` extensions.
+- For a locked SQLite database, close applications writing to it and retry. Keep a backup before editing data.
+- If Windows cannot run `python` or `py`, install Python 3.9+ and verify `py -3 --version` in a new terminal.
+- Browser QA: install `playwright`, run `python -m playwright install chromium`, then `python tests/visual_qa.py`. It checks seven widths from 320 to 1920 pixels and writes ignored screenshots to `artifacts/visual-qa/`.
+- To test an already installed Chrome instead, set `PLAYWRIGHT_CHANNEL=chrome` (PowerShell: `$env:PLAYWRIGHT_CHANNEL='chrome'`) before running browser QA.
+
+The Python launcher remains the lightweight distribution option. A desktop executable would need separate platform builds, signing and update maintenance; it is not currently provided.
+
 Offline demo, reporting, CSV and deterministic tests are ready to use once verified by CI. Live extraction is **best effort** and depends on the current upstream API; do not claim production coverage or completeness without a successful authorized live smoke test.
 
 MIT license — see [LICENSE](LICENSE).

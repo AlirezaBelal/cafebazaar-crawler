@@ -1,6 +1,12 @@
 name: Offline browser visual QA
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+      - "tests/visual_qa.py"
+      - ".github/workflows/visual-qa.yml"
   pull_request:
     paths:
       - "src/local_report.py"
@@ -28,7 +34,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install "playwright>=1.50,<2"
           python -m playwright install --with-deps chromium
-      - name: Render demo and verify four viewports, filters and theme
+      - name: Render demo and verify seven viewports, filters and theme
         run: python tests/visual_qa.py
       - name: Upload responsive screenshots
         if: always()

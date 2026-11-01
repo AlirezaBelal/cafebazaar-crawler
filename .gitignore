@@ -62,5 +62,6 @@ log/
 logs/
 
 # Local reports / spreadsheet exports
+artifacts/
 *-report.html
 *.csv

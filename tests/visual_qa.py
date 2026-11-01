@@ -4,6 +4,7 @@ Requires: pip install playwright && python -m playwright install chromium.
 No CafeBazaar requests are made.
 """
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -26,21 +27,28 @@ def main():
         )
         report = database.with_name("example-report.html")
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
+            browser = playwright.chromium.launch(
+                headless=True, channel=os.environ.get("PLAYWRIGHT_CHANNEL") or None)
             try:
                 for label, width, height in (
                     ("desktop-1440", 1440, 900),
+                    ("desktop-1920", 1920, 1080),
+                    ("desktop-1024", 1024, 768),
                     ("tablet-768", 768, 1024),
+                    ("mobile-375", 375, 812),
                     ("mobile-390", 390, 844),
                     ("mobile-320", 320, 740),
                 ):
                     page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=1)
                     external = []
+                    errors = []
+                    page.on("pageerror", lambda error: errors.append(str(error)))
                     page.on("request", lambda request: external.append(request.url) if request.url.startswith(("http:", "https:")) else None)
                     page.goto(report.resolve().as_uri(), wait_until="load")
                     page.locator("#inventory").scroll_into_view_if_needed()
                     assert page.locator("#apps tbody tr").count() == 12
                     assert page.locator("#apps tbody tr:visible").count() == 12
+                    assert page.locator(".report-mode").is_visible(), "Demo provenance must remain visible"
                     overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
                     assert overflow <= 1, "horizontal overflow {}px on {}".format(overflow, label)
                     assert not external, "Report attempted external network access: {}".format(external)
@@ -58,14 +66,23 @@ def main():
                         assert page.locator("#apps tbody tr:visible").count() == 12
                         page.locator("#sort-order").select_option("installs")
                         assert page.locator("#apps tbody tr:visible").first.get_attribute("data-installs") == "335000"
+                        page.locator("#sort-order").select_option("rating")
+                        assert page.locator("#apps tbody tr:visible").first.get_attribute("data-rating") == "4.9"
+                        page.locator("#search").blur()
+                        page.keyboard.press("/")
+                        assert page.locator("#search").evaluate("el => el === document.activeElement")
                         page.locator("#theme-toggle").click()
                         assert page.locator("html").get_attribute("data-theme") == "dark"
                         assert page.locator("#theme-toggle").get_attribute("aria-pressed") == "true"
                         page.screenshot(path=str(ARTIFACTS / "desktop-dark.png"), full_page=True)
+                        page.locator("#theme-toggle").click()
+                        assert page.locator("#theme-toggle").get_attribute("aria-pressed") == "false"
+                    assert not external, "Unexpected external requests: {}".format(external)
+                    assert not errors, "Browser errors: {}".format(errors)
                     page.close()
             finally:
                 browser.close()
-    print("Visual QA PASS: four viewports, no overflow/network, interactive filters/sort/dark mode")
+    print("Visual QA PASS: seven viewports, no overflow/network/errors, filters, both sorts, keyboard and themes")
 
 
 if __name__ == "__main__":

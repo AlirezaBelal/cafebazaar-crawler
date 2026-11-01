@@ -5,6 +5,7 @@ for the explicit synthetic demo builder, and the report omits developer contacts
 """
 import csv
 import html
+import re
 import sqlite3
 from collections import Counter
 from contextlib import closing
@@ -20,6 +21,17 @@ COLUMNS = (
     "average_score", "comment_count", "version", "last_update", "source",
 )
 MAX_REPORT_ROWS = 1000
+
+
+def _check_output(db_path: Path, output: Path) -> Path:
+    """Never let an export truncate its source, including filesystem aliases."""
+    source = Path(db_path).expanduser().resolve()
+    target = Path(output).expanduser().resolve()
+    if target == source or (target.exists() and source.exists() and target.samefile(source)):
+        raise ValueError("Output must be different from the source SQLite database")
+    if target.suffix.lower() in (".db", ".sqlite", ".sqlite3"):
+        raise ValueError("Report/CSV output must not use a SQLite database extension")
+    return target
 
 
 def create_demo(db_path: Path) -> int:
@@ -79,6 +91,7 @@ def _safe_csv(value) -> str:
 
 
 def export_csv(db_path: Path, output: Path) -> int:
+    output = _check_output(db_path, output)
     rows = _read_rows(db_path)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +118,7 @@ def _format_date(value) -> str:
 
 
 def create_report(db_path: Path, output: Path, limit: int = 500) -> int:
+    output = _check_output(db_path, output)
     if not 1 <= limit <= MAX_REPORT_ROWS:
         raise ValueError("Report limit must be between 1 and {}".format(MAX_REPORT_ROWS))
     # Fetch only a bounded number of rows for a responsive standalone report.
@@ -206,9 +220,9 @@ def create_report(db_path: Path, output: Path, limit: int = 500) -> int:
         ("__REPORT_CATEGORY_OPTIONS__", "\n".join(category_options)),
         ("__REPORT_ROWS__", "\n".join(table_rows)),
     )
-    page = template
-    for token, content in replacements:
-        page = page.replace(token, content)
+    # Substitute once: untrusted text resembling a template token is literal data.
+    values = dict(replacements)
+    page = re.sub(r"__REPORT_[A-Z_]+__", lambda match: values[match.group()], template)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page, encoding="utf-8")
