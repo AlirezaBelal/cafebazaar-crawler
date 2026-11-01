@@ -5,7 +5,6 @@ import traceback
 from pathlib import Path
 from time import sleep
 
-import bazarService
 import config
 from local_report import create_demo, create_report, export_csv
 
@@ -101,6 +100,8 @@ def print_summary(stats):
 
 
 def run(args):
+    # Import network-only dependencies only when a real crawl is requested.
+    import bazarService
     db_path = Path(args.db).expanduser().resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
     config.RESULT_FILE = str(db_path)
