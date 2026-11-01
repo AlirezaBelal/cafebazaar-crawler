@@ -3,6 +3,7 @@
 import csv
 from contextlib import closing
 import io
+import os
 import sqlite3
 import sys
 import tempfile
@@ -84,6 +85,19 @@ class LocalProductTests(unittest.TestCase):
             self.assertEqual(items[0]["name"], "'=HYPERLINK(1)")
             self.assertEqual(items[0]["package_name"], "ir.demo")
             self.assertNotIn("author_email", items[0])
+
+    def test_relative_demo_path_works_for_windows_launcher(self):
+        with tempfile.TemporaryDirectory() as folder:
+            previous = Path.cwd()
+            try:
+                os.chdir(folder)
+                db = Path("data") / "demo-relative.db"
+                self.assertEqual(create_demo(db), 3)
+                report = Path("data") / "demo-relative-report.html"
+                self.assertEqual(create_report(db, report), 3)
+                self.assertTrue(report.exists())
+            finally:
+                os.chdir(previous)
 
     def test_missing_db_rejected_without_creating_it(self):
         with tempfile.TemporaryDirectory() as folder:
