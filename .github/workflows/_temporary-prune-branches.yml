@@ -7,10 +7,11 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   prune-verified-merged-branches:
-    if: "${{ startsWith(github.event.head_commit.message, 'feat(product): local-first CafeBazaar explorer (#3)') }}"
+    if: "${{ startsWith(github.event.head_commit.message, 'chore: retry verified branch cleanup') }}"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
