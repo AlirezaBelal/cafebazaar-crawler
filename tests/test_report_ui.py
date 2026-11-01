@@ -107,6 +107,7 @@ class ReportDesignTests(unittest.TestCase):
             import sqlite3
             with closing(sqlite3.connect(db)) as connection:
                 connection.execute("DELETE FROM app_details")
+                connection.commit()
             self.assertEqual(create_report(db, report), 0)
             markup = report.read_text(encoding="utf-8")
             self.assertIn("هنوز برنامه‌ای برای نمایش وجود ندارد.", markup)
