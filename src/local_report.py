@@ -43,7 +43,7 @@ def create_demo(db_path: Path) -> int:
 
 
 def _read_rows(db_path: Path, limit: int = 0) -> List[Dict]:
-    path = Path(db_path)
+    path = Path(db_path).expanduser().resolve()
     if not path.is_file():
         raise ValueError("SQLite file does not exist: {}".format(path))
     # Read-only mode: do not create an empty database as a side effect.
