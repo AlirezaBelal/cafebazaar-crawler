@@ -60,3 +60,7 @@ Thumbs.db
 *.log
 log/
 logs/
+
+# Local reports / spreadsheet exports
+*-report.html
+*.csv

@@ -1,0 +1,53 @@
+name: One-time exact-SHA cleanup of merged branches
+
+# Temporary workflow. Remove from master as soon as this run is verified.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  prune-verified-merged-branches:
+    if: "${{ startsWith(github.event.head_commit.message, 'feat(product): local-first CafeBazaar explorer (#3)') }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify merged PRs and remove only expected refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for number in 1 2 3; do
+            merged="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$number" --jq .merged)"
+            if [ "$merged" != true ]; then
+              echo "PR #$number is not merged; refusing branch deletion"
+              exit 1
+            fi
+          done
+
+          delete_if_unchanged() {
+            local name="$1"
+            local expected="$2"
+            local ref="repos/$GITHUB_REPOSITORY/git/ref/heads/$name"
+            local actual
+            actual="$(gh api "$ref" --jq '.object.sha')" || {
+              echo "Unable to read $name; preserving it"
+              return 0
+            }
+            if [ "$actual" != "$expected" ]; then
+              echo "Head moved for $name; preserving it"
+              return 0
+            fi
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$name"
+            echo "Deleted verified merged branch $name"
+          }
+
+          delete_if_unchanged 'figma-upload-bridge-20260930' '19a4664a201e7715892b96c0991ab965963e2a83'
+          delete_if_unchanged 'fix/stop-repeated-pagination-20261101' '7381d50bcb3795137392c7ea5cabfd4975375baa'
+          delete_if_unchanged 'fix/bounded-crawl-pages-20261101' 'ad69cf957522cee3cefb3ca87ab991bcfc990998'
+
+          merged_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/3" --jq .head.sha)"
+          delete_if_unchanged 'feat/local-report-product-20261101' "$merged_head"
