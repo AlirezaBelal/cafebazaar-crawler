@@ -10,7 +10,7 @@ Collect permitted public app information to SQLite, browse it in a searchable **
 
 Requirements: **Python 3.9 or newer**. The offline demo uses only the Python standard library.
 
-**Windows:** Double-click `scripts/desktop-demo.cmd`. It generates three clearly labelled **synthetic** apps and opens a local HTML report.
+**Windows:** Double-click `scripts/desktop-demo.cmd`. It generates twelve clearly labelled **synthetic** apps and opens a local HTML report.
 
 Or use a terminal (Windows, macOS, Linux):
 
@@ -20,7 +20,7 @@ python src/main.py --demo
 
 Open `data/demo-report.html` in your browser. **No real apps are fetched.** If the demo already exists, use `--db data/another-demo.db`; the tool will not overwrite an existing database with synthetic records.
 
-The report includes search, summaries, app metadata, responsive cards, and a table. It is a standalone HTML file with no external dependencies. It intentionally omits contact details.
+The report uses a new Persian-first premium RTL dashboard with responsive cards, charts, a searchable and sortable app table, a category filter, accessible empty states, and an optional dark theme. All assets are embedded in the generated HTML; it needs no server, CDN, or internet access. It is a standalone HTML file with no external dependencies. It intentionally omits contact details.
 
 ## Collect real public metadata (optional)
 
