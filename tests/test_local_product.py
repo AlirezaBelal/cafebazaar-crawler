@@ -1,6 +1,7 @@
 """End-to-end offline product tests: no CafeBazaar requests or credentials."""
 
 import csv
+from contextlib import closing
 import io
 import sqlite3
 import sys
@@ -36,7 +37,7 @@ class LocalProductTests(unittest.TestCase):
             self.assertIn("گزارش برنامه‌های کافه‌بازار", page)
             self.assertIn("id=\"search\"", page)
             self.assertNotIn("__REPORT_ROWS__", page)
-            with sqlite3.connect(database) as conn:
+            with closing(sqlite3.connect(database)) as conn:
                 self.assertEqual(
                     conn.execute("SELECT COUNT(*) FROM app_details").fetchone()[0],
                     3,
