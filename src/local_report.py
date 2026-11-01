@@ -111,105 +111,98 @@ def create_report(db_path: Path, output: Path, limit: int = 500) -> int:
     def e(value):
         return html.escape("" if value is None else str(value), quote=True)
 
+    # The HTML remains a single self-contained, offline file. No external fonts,
+    # images, scripts, data sources, or local servers are required.
+    resource_dir = Path(__file__).resolve().parent
+    template = (resource_dir / "report_template.html").read_text(encoding="utf-8")
+    style = (resource_dir / "report_style.css").read_text(encoding="utf-8")
+    script = (resource_dir / "report_interactions.js").read_text(encoding="utf-8")
+
+    def fmt(value):
+        return html.escape("" if value is None else str(value), quote=True)
+
     table_rows = []
-    for row in rows:
+    for idx, row in enumerate(rows):
+        name = str(row.get("name") or "بدون نام")
+        package = str(row.get("package_name") or "")
+        category = str(row.get("category") or "نامشخص")
+        version = str(row.get("version") or "—")
+        installs_value = int(row.get("installation_count") or 0)
+        rating_value = float(row.get("average_score") or 0)
+        rating_text = "{:.1f}".format(rating_value) if rating_value else "—"
+        search_text = " ".join((name, package, category, str(row.get("sub_category") or "")))
         table_rows.append(
-            '<tr><td class="name"><strong>{}</strong><small dir="ltr">{}</small></td>'
-            '<td>{}</td><td class="num">{}</td><td class="num">{:.1f}</td>'
-            '<td dir="ltr">{}</td><td dir="ltr">{}</td></tr>'.format(
-                e(row.get("name") or "بدون نام"), e(row.get("package_name")),
-                e(row.get("category") or "نامشخص"),
-                e(_format_int(row.get("installation_count"))),
-                float(row.get("average_score") or 0),
-                e(row.get("version") or "—"),
-                e(_format_date(row.get("last_update"))),
+            '<tr data-name="{name}" data-search="{search}" data-category="{category}" '
+            'data-installs="{installs}" data-rating="{rating}">'
+            '<td class="app-cell" data-label="اپلیکیشن"><div class="app-details">'
+            '<span class="app-monogram tint-{tint}" aria-hidden="true">{initial}</span>'
+            '<span><strong class="app-title" dir="auto">{name}</strong>'
+            '<small class="app-package" dir="ltr">{package}</small></span></div></td>'
+            '<td data-label="دسته‌بندی"><span class="category-pill" dir="auto">{category}</span></td>'
+            '<td class="data-num" data-label="نصب">{formatted_installs}</td>'
+            '<td data-label="امتیاز"><span class="rating-chip"><span class="rating-star" aria-hidden="true">★</span>{rating_text}</span></td>'
+            '<td class="data-num" data-label="نسخه">{version}</td>'
+            '<td class="data-num" data-label="به‌روزرسانی">{updated}</td></tr>'.format(
+                name=fmt(name),
+                search=fmt(search_text),
+                category=fmt(category),
+                installs=installs_value,
+                rating=rating_value,
+                tint=idx % 4,
+                initial=fmt(name[:1]),
+                package=fmt(package),
+                formatted_installs=fmt(_format_int(installs_value)),
+                rating_text=fmt(rating_text),
+                version=fmt(version),
+                updated=fmt(_format_date(row.get("last_update"))),
             )
         )
-    top_categories = ", ".join(
-        "{} ({})".format(e(name), count)
-        for name, count in categories.most_common(5)
-    ) or "بدون داده"
-    cutoff = ('این گزارش تنها {} ردیف نخست را نشان می‌دهد. برای همهٔ داده‌ها از CSV استفاده کنید.'.format(limit)
-              if truncated else 'تمام ردیف‌های موجود در این پایگاه داده نمایش داده می‌شوند.')
-    # No external assets, tracking, HTTP requests, developer contact details, or
-    # unescaped user-controlled HTML. Client-side search reads only the local DOM.
-    page = """<!doctype html>
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-<title>CafeBazaar Crawler | گزارش آفلاین</title>
-<style>
-:root{font-family:Tahoma,"Segoe UI",sans-serif;color:#172538;background:#f3f6fa;font-synthesis:none}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh}
-main{max-width:1160px;margin:auto;padding:clamp(18px,4vw,48px)}
-header{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
-.brand{font-size:14px;letter-spacing:.04em;color:#087f78;font-weight:800;direction:ltr}
-.tag{font-size:12px;color:#04685f;background:#dcf7ee;padding:8px 12px;border-radius:100px}
-h1{font-size:clamp(28px,4vw,44px);letter-spacing:-.04em;margin:26px 0 8px}
-.lead{color:#526379;line-height:2;max-width:720px}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:28px 0}
-.card,.panel{background:white;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 10px 32px rgba(31,47,71,.035)}
-.card{padding:22px}
-.card span{color:#627187;font-size:13px;display:block}
-.card strong{font-size:clamp(19px,3vw,30px);display:block;direction:ltr;text-align:right;margin-top:8px}
-.panel{padding:22px;margin-bottom:20px}
-h2{font-size:18px;margin:0 0 12px}
-.meta,.foot{color:#68768a;font-size:13px;line-height:2}
-.controls{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-input{font:inherit;min-width:min(100%,320px);padding:12px 16px;border:1px solid #c8d3e1;border-radius:12px;background:#fff;color:inherit}
-input:focus-visible{outline:3px solid #56b6aa;outline-offset:2px}
-.scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;text-align:right;min-width:660px}
-th,td{padding:14px 10px;border-bottom:1px solid #eef1f5;font-size:13px;vertical-align:middle}
-th{color:#54647a;font-weight:700;background:#f9fbfd}
-td.name strong,td.name small{display:block}
-td.name small{font-size:11px;color:#8290a1;margin-top:6px;text-align:right}
-.num{font-variant-numeric:tabular-nums}
-tr:hover td{background:#f9fcfd}
-footer{margin-top:28px;color:#63758b;font-size:12px;line-height:2}
-@media(max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:16px}.panel{padding:16px}}
-@media(max-width:370px){.stats{grid-template-columns:1fr 1fr}.card strong{font-size:18px}}
-</style>
-</head>
-<body><main>
-<header><span class="brand">CAFÉBAZAAR / LOCAL RESEARCH</span><span class="tag">گزارش آفلاین · بدون اتصال اینترنت</span></header>
-<h1>گزارش برنامه‌های کافه‌بازار</h1>
-<p class="lead">نمای خواندنی از داده‌های پایگاه SQLite محلی شما. تعداد نصب‌ها ممکن است تخمینی باشد و به معنی کاربران فعال نیست.</p>
-<section class="stats" aria-label="خلاصه">
-<div class="card"><span>برنامه‌های نمایش‌داده‌شده</span><strong>__REPORT_COUNT__</strong></div>
-<div class="card"><span>دسته‌بندی‌ها</span><strong>__REPORT_CATEGORIES__</strong></div>
-<div class="card"><span>جمع تعداد نصب گزارش‌شده</span><strong>__REPORT_INSTALLS__</strong></div>
-<div class="card"><span>میانگین امتیازهای ثبت‌شده</span><strong>__REPORT_MEAN__</strong></div>
-</section>
-<section class="panel"><h2>دسته‌بندی‌های پرتکرار</h2><p class="meta">__REPORT_TOP__</p><p class="meta">__REPORT_CUTOFF__</p></section>
-<section class="panel">
-<div class="controls"><h2>فهرست برنامه‌ها</h2><label for="search">جست‌وجوی محلی <input id="search" type="search" placeholder="نام، شناسه یا دسته‌بندی"></label></div>
-<div class="scroll"><table id="apps"><thead><tr><th>برنامه / شناسه</th><th>دسته‌بندی</th><th>نصب</th><th>امتیاز</th><th>نسخه</th><th>آخرین به‌روزرسانی</th></tr></thead>
-<tbody>__REPORT_ROWS__</tbody></table></div>
-<p id="empty" class="meta" role="status" hidden>نتیجه‌ای برای این عبارت پیدا نشد.</p>
-</section>
-<footer>ایجادشده توسط CafeBazaar Crawler · فایل HTML مستقل و محلی · اطلاعات توسعه‌دهندگان و تماس در این نما نمایش داده نمی‌شوند.</footer>
-</main>
-<script>
-const input=document.getElementById('search');
-const rows=Array.from(document.querySelectorAll('#apps tbody tr'));
-const empty=document.getElementById('empty');
-input.addEventListener('input',()=>{const q=input.value.trim().toLocaleLowerCase();let found=0;for(const row of rows){const ok=row.textContent.toLocaleLowerCase().includes(q);row.hidden=!ok;if(ok)found++;}empty.hidden=found!==0;});
-</script>
-</body></html>"""
-    for token, value in (
-        ("__REPORT_COUNT__", e(_format_int(total))),
-        ("__REPORT_CATEGORIES__", e(_format_int(len(categories)))),
-        ("__REPORT_INSTALLS__", e(_format_int(installs))),
-        ("__REPORT_MEAN__", e("{:.1f}".format(mean))),
-        ("__REPORT_TOP__", top_categories),
-        ("__REPORT_CUTOFF__", e(cutoff)),
-        ("__REPORT_ROWS__", "\\n".join(table_rows)),
-    ):
-        page = page.replace(token, value)
+
+    category_rows = []
+    category_options = []
+    for category, count in categories.most_common(5):
+        percent = (100.0 * count / total) if total else 0
+        category_rows.append(
+            '<div class="category-row">'
+            '<div class="bar-info"><span dir="auto">{category}</span>'
+            '<span>{count} برنامه · {percent:.0f}٪</span></div>'
+            '<div class="bar-track" role="meter" aria-label="{category}" '
+            'aria-valuemin="0" aria-valuemax="100" aria-valuenow="{percent:.0f}">'
+            '<div class="bar-fill" style="--bar:{percent:.1f}%"></div></div></div>'.format(
+                category=fmt(category), count=count, percent=percent,
+            )
+        )
+    for category in sorted(categories, key=lambda value: value.casefold()):
+        category_options.append('<option value="{0}">{0}</option>'.format(fmt(category)))
+
+    if not category_rows:
+        category_rows.append('<p class="section-helper">هنوز برنامه‌ای برای نمایش وجود ندارد.</p>')
+
+    cutoff = (
+        "این گزارش تنها {} ردیف نخست را نشان می‌دهد. برای همهٔ داده‌ها از CSV استفاده کنید.".format(limit)
+        if truncated else "تمام ردیف‌های موجود در این پایگاه داده نمایش داده می‌شوند."
+    )
+    # Demo data is always clearly labelled and never presented as live data.
+    is_demo = bool(rows) and all(
+        str(row.get("package_name") or "").startswith("ir.example.demo.")
+        for row in rows
+    )
+    replacements = (
+        ("__REPORT_STYLE__", style),
+        ("__REPORT_SCRIPT__", script),
+        ("__REPORT_COUNT__", fmt(_format_int(total))),
+        ("__REPORT_CATEGORIES__", fmt(_format_int(len(categories)))),
+        ("__REPORT_INSTALLS__", fmt(_format_int(installs))),
+        ("__REPORT_MEAN__", fmt("{:.1f}".format(mean))),
+        ("__REPORT_MODE__", "دموی ساختگی · غیرواقعی" if is_demo else "گزارش داده‌های محلی"),
+        ("__REPORT_CUTOFF__", fmt(cutoff)),
+        ("__REPORT_CATEGORY_BARS__", "\n".join(category_rows)),
+        ("__REPORT_CATEGORY_OPTIONS__", "\n".join(category_options)),
+        ("__REPORT_ROWS__", "\n".join(table_rows)),
+    )
+    page = template
+    for token, content in replacements:
+        page = page.replace(token, content)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page, encoding="utf-8")
