@@ -30,11 +30,28 @@ def parse_args():
         help="Process only the first N subcategories per category (0 = unlimited).",
     )
     parser.add_argument(
+        "--max-list-pages",
+        type=int,
+        default=0,
+        help="Maximum listing API pages per subcategory (0 = unlimited).",
+    )
+    parser.add_argument(
+        "--max-subcategory-pages",
+        type=int,
+        default=0,
+        help="Maximum subcategory API pages per category (0 = unlimited).",
+    )
+    parser.add_argument(
         "--db",
         default=config.RESULT_FILE,
         help="SQLite output path. Defaults to data/cafebazaar_results.db.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    for name in ("max_apps", "category_limit", "subcategory_limit",
+                 "max_list_pages", "max_subcategory_pages"):
+        if getattr(args, name) < 0:
+            parser.error("--" + name.replace("_", "-") + " must be non-negative (0 = unlimited)")
+    return args
 
 
 def limited(items, limit):
@@ -84,7 +101,9 @@ def run(args):
                 continue
 
             print(f"\n[Category] {title}")
-            subcategories = bazarService.fetch_all_subcategories(path)
+            subcategories = bazarService.fetch_all_subcategories(
+                path, max_pages=args.max_subcategory_pages
+            )
 
             for subcategory in limited(subcategories, args.subcategory_limit):
                 stats["subcategories"] += 1
@@ -96,7 +115,9 @@ def run(args):
                     continue
 
                 print(f"  [Subcategory] {sub_title}")
-                apps = bazarService.fetch_all_apps(sub_path)
+                apps = bazarService.fetch_all_apps(
+                    sub_path, max_pages=args.max_list_pages
+                )
                 print(f"  Found {len(apps)} apps")
 
                 for app in apps:
@@ -142,7 +163,8 @@ def run(args):
         return 130
 
     print_summary(stats)
-    return 0
+    # An entirely failed crawl must not report success to scripts/schedulers.
+    return 1 if stats["failed"] > 0 and stats["saved"] == 0 else 0
 
 
 def main():
