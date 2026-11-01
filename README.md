@@ -11,6 +11,7 @@ A lightweight Python crawler that collects public app metadata from CafeBazaar a
 - Captures app name, package, developer info, install count, ratings, category, tags, descriptions, price, version, and update time
 - Retries transient HTTP failures and stops cleanly after repeated failures
 - Stops pagination when the API repeats an already seen page, avoiding unbounded duplicate requests
+- Supports optional per-category/subcategory page budgets for deliberately bounded test crawls
 - Skips duplicate packages during a single run
 - Prints a crawl summary on completion or `Ctrl+C`
 
@@ -45,7 +46,7 @@ pip install -r requirements.txt
 python src/main.py --max-apps 20
 ```
 
-`--max-apps 20` is a convenient smoke test. Remove the option for a full crawl.
+`--max-apps 20` limits successfully saved apps **but not the listing pages requested before processing them**. For a deliberately bounded, low-traffic smoke run also set `--max-list-pages` and `--max-subcategory-pages` as shown below.
 
 ## Usage
 
@@ -58,7 +59,7 @@ python src/main.py
 Small controlled run:
 
 ```bash
-python src/main.py --category-limit 1 --subcategory-limit 1 --max-apps 20
+python src/main.py --category-limit 1 --subcategory-limit 1 --max-apps 20 --max-list-pages 2 --max-subcategory-pages 1
 ```
 
 Write to a custom database:
@@ -66,6 +67,8 @@ Write to a custom database:
 ```bash
 python src/main.py --max-apps 20 --db data/test.db
 ```
+
+Optional request budgets use `0` (the default) for unlimited pages; other values must be positive. Each budget applies per path, not to the whole crawl. Negative CLI limits are rejected. An empty category response or a run with only failed app requests exits nonzero; a partially successful run reports its saved/failed totals and can still exit successfully.
 
 Show all CLI options:
 
@@ -120,6 +123,7 @@ GitHub Actions runs the same tests on supported Python versions for pushes and p
 ## Operational notes
 
 - The crawler relies on CafeBazaar web API endpoints and response structures, which may change over time.
+- CI tests use synthetic/mocked data and do not validate live API availability; use small bounded runs only where access and request rates are permitted.
 - Network or upstream changes can cause individual requests to fail; transient failures are retried.
 - Pressing `Ctrl+C` stops the crawl without deleting data already written to SQLite.
 - Database files and virtual environments are excluded from Git.
