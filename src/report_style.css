@@ -194,3 +194,4 @@ td.data-num{font:700 12px "Segoe UI",Tahoma,sans-serif;color:var(--ink);directio
 /* Keep the data provenance visible on tablet and phone as well as desktop. */
 @media(max-width:1050px){.section-heading{flex-wrap:wrap}.heading-aside{display:flex;align-items:flex-start;margin-top:12px;max-width:100%}}
 @media print{.sidebar,.topbar,.hero-link,.toolbar,.footer,.icon-button{display:none!important}.app-shell{display:block}.content{padding:0}.hero{min-height:180px;box-shadow:none}.surface,.metric-card{box-shadow:none;break-inside:avoid}.table-scroll{overflow:visible}table{min-width:0}body{background:white}}
+.skip-link{position:fixed;inset-block-start:12px;inset-inline-start:12px;z-index:1000;transform:translateY(-160%);padding:10px 14px;background:#fff;color:#173b35;border:2px solid #173b35;border-radius:8px;font-weight:700;text-decoration:none}.skip-link:focus,.skip-link:focus-visible{transform:translateY(0);outline:3px solid #255b55;outline-offset:2px}
