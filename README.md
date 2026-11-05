@@ -116,3 +116,9 @@ Offline demo, reporting, CSV and deterministic tests are ready to use once verif
 MIT license — see [LICENSE](LICENSE).
 
 **Privacy:** Research may collect public developer contacts into your *local* SQLite file. Treat it as personal data if applicable. The offline HTML report and CSV intentionally exclude contact fields. Review and remove sensitive data before publishing or sharing any dataset.
+
+## Live browser demo
+
+[Open the GitHub Pages demo](https://alirezabelal.github.io/cafebazaar-crawler/)
+
+The browser demo is an offline report built from fictional app listings. It supports search, category filters, sorting, app details, and sample metrics; it does not fetch CafeBazaar.
