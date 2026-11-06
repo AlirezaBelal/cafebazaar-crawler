@@ -156,7 +156,7 @@ def run(args):
                 for app in apps:
                     if args.max_apps > 0 and stats["saved"] >= args.max_apps:
                         print_summary(stats)
-                        return 0
+                        return 1 if stats["failed"] else 0
 
                     package_name = app.get("packageName")
                     if not package_name:
@@ -178,7 +178,7 @@ def run(args):
                             print(f"    [SAVED] {app_detail.package_name}")
                             if args.max_apps > 0 and stats["saved"] >= args.max_apps:
                                 print_summary(stats)
-                                return 0
+                                return 1 if stats["failed"] else 0
                     except Exception as exc:
                         stats["failed"] += 1
                         print(f"    [ERROR] {package_name}: {exc}")
@@ -196,8 +196,8 @@ def run(args):
         return 130
 
     print_summary(stats)
-    # An entirely failed crawl must not report success to scripts/schedulers.
-    return 1 if stats["failed"] > 0 and stats["saved"] == 0 else 0
+    # Empty or partially failed crawls must not report success to automation.
+    return 0 if stats["saved"] > 0 and stats["failed"] == 0 else 1
 
 
 def main():

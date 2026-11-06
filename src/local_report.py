@@ -5,6 +5,9 @@ for the explicit synthetic demo builder, and the report omits developer contacts
 """
 import csv
 import html
+import os
+import tempfile
+from contextlib import contextmanager
 import re
 import sqlite3
 from collections import Counter
@@ -27,11 +30,30 @@ def _check_output(db_path: Path, output: Path) -> Path:
     """Never let an export truncate its source, including filesystem aliases."""
     source = Path(db_path).expanduser().resolve()
     target = Path(output).expanduser().resolve()
-    if target == source or (target.exists() and source.exists() and target.samefile(source)):
-        raise ValueError("Output must be different from the source SQLite database")
+    reserved = [source] + [Path(str(source) + suffix) for suffix in ("-wal", "-shm", "-journal")]
+    for protected in reserved:
+        if target == protected or (target.exists() and protected.exists() and target.samefile(protected)):
+            raise ValueError("Output must not replace the SQLite database or its recovery files")
     if target.suffix.lower() in (".db", ".sqlite", ".sqlite3"):
         raise ValueError("Report/CSV output must not use a SQLite database extension")
     return target
+
+
+@contextmanager
+def _atomic_output(output, encoding, newline=None):
+    """Publish only a fully written export, retaining any previous destination on failure."""
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding=encoding, newline=newline,
+                                         dir=output.parent, delete=False) as handle:
+            temporary = Path(handle.name)
+            yield handle
+        os.replace(temporary, output)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def create_demo(db_path: Path) -> int:
@@ -95,7 +117,7 @@ def export_csv(db_path: Path, output: Path) -> int:
     rows = _read_rows(db_path)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8-sig", newline="") as handle:
+    with _atomic_output(output, "utf-8-sig", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(COLUMNS)
         for row in rows:
@@ -225,5 +247,6 @@ def create_report(db_path: Path, output: Path, limit: int = 500) -> int:
     page = re.sub(r"__REPORT_[A-Z_]+__", lambda match: values[match.group()], template)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(page, encoding="utf-8")
+    with _atomic_output(output, "utf-8") as handle:
+        handle.write(page)
     return total

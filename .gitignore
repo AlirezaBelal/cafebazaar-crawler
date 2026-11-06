@@ -65,3 +65,7 @@ logs/
 artifacts/
 *-report.html
 *.csv
+
+# Isolated browser QA tooling and evidence
+node_modules/
+qa-evidence/
