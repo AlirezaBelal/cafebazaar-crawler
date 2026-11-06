@@ -28,6 +28,7 @@ for(const [name,url] of sites) for(const width of [320,375,390,768,1024,1440,192
  assert(await page.evaluate(()=>{const e=document.activeElement;const c=getComputedStyle(e);return e!==document.body&&(c.outlineStyle!=='none'||c.boxShadow!=='none');}),'visible keyboard focus');
  for(const summary of await page.locator('summary').all()){await summary.focus();await page.keyboard.press('Enter');}
  if(name==='product'){await page.locator('nav a[href="#workflow"]').first().click();assert.equal(new URL(page.url()).hash,'#workflow');assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior),'auto');}
+ for(const pre of await page.locator('pre').all()){if(await pre.evaluate(e=>e.scrollWidth>e.clientWidth+1)){await pre.focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(150);assert(await pre.evaluate(e=>e.scrollLeft>0),'keyboard code scrolling');}}
  const accessibility=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
  await writeFile(out+'/'+name+'-'+width+'-accessibility.json',JSON.stringify(accessibility,null,2));
  assert.deepEqual(accessibility.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],'accessibility violations');
