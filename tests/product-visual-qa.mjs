@@ -16,6 +16,7 @@ for(const [name,url] of sites) for(const width of [320,375,390,768,1024,1440,192
  page.on('request',r=>requests.push(r.url()));
  page.on('response',r=>{if(r.status()>=400)bad.push([r.status(),r.url()]);});
  await page.goto(url,{waitUntil:'networkidle'}); await page.evaluate(()=>document.fonts.ready);
+ if(name==='portfolio') await page.waitForTimeout(3800); // Cover the shared layout's deferred analytics window.
  assert.equal(await page.locator('h1').count(),1);
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'horizontal overflow '+name+' '+width);
  assert(await page.locator('img').evaluateAll(xs=>xs.every(x=>x.complete&&x.naturalWidth>0)),'broken image');
