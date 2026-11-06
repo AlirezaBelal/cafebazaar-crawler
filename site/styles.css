@@ -41,7 +41,7 @@ p code{overflow-wrap:anywhere}
 .hero-note{max-width:560px;margin:1.1rem auto 2.3rem;font-size:.8125rem;color:#d0dfd5}
 .blueprint{max-width:900px;margin:0 auto;position:relative;transform:translateY(1.5rem)}
 .blueprint img{width:100%;border-radius:12px;border:1px solid #89ab95;background:#e7f2e8;box-shadow:0 14px 36px #072a2320}
-.blueprint figcaption{font-size:.75rem;margin-top:.65rem;color:var(--muted);text-align:left}
+.blueprint figcaption{font-size:.75rem;margin-top:0;padding:.6rem .75rem;color:var(--muted);background:var(--paper);border-radius:0 0 6px 6px;text-align:left}
 .section{padding-block:4.5rem;scroll-margin-top:1rem}
 .overview{padding-top:6rem;display:grid;grid-template-columns:1fr 1fr;gap:5rem}
 .section-label{font-size:.8125rem;font-weight:650;color:var(--green);margin-bottom:.8rem}
