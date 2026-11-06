@@ -14,6 +14,18 @@ import local_report as report
 
 
 class ReleaseSafetyTests(unittest.TestCase):
+    def test_transport_honors_server_backoff_but_never_retries_access_refusals(self):
+        session = service.get_session()
+        try:
+            retry = session.get_adapter('https://').max_retries
+            for status in (401, 403, 429):
+                self.assertFalse(retry.is_retry('POST', status, has_retry_after=True))
+            self.assertTrue(retry.is_retry('POST', 503, has_retry_after=True))
+            self.assertTrue(retry.respect_retry_after_header)
+            self.assertEqual(retry.get_retry_after(Mock(headers={'Retry-After': '12'})), 12)
+        finally:
+            session.close()
+
     def test_recovery_files_are_not_export_destinations(self):
         with tempfile.TemporaryDirectory() as folder:
             db = Path(folder) / 'apps.db'

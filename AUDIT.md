@@ -41,7 +41,7 @@ Confirmed defects and corrections:
 - Partial failures could return success, including at the app limit; empty runs could also return success. Deterministic CLI regressions now require nonzero status in these cases.
 - Exports did not protect WAL/SHM/journal destinations or preserve an existing output after a write failure. Added recovery-name/alias guards and atomic temporary-file publication.
 - App-detail responses were not compared with the requested package before persistence. Added request identifier validation and response identity matching.
-- Detail retries continued on access refusal. Stop application retries for 401/403/429; transport Retry-After handling is disabled so 429 is not retried by that layer.
+- Detail retries continued on access refusal. Stop application retries for 401/403/429; transport retry decisions explicitly exclude those refusal statuses while preserving Retry-After guidance for server failures such as 503.
 - Pages published a fictional dashboard and README described hosted import as a product feature. Publish the static `site/` product guide; preserve locally generated reports and their importer.
 
 The pinned design and web-ui-audit revisions remain unchanged. The brand register guided a forest/mint centered composition and custom response-flow SVG, with native sans typography (32–56px hero, 24–36px section headings), focusable code blocks, reduced motion, local assets, and a no-script/no-connect CSP. Automated Chromium screenshots and WCAG scans cover the new website and public portfolio route at all seven required widths. Merge-time Actions artifacts and job results are the verification record; no live marketplace request is used by the release tests.
