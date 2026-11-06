@@ -31,3 +31,21 @@ Scope: current master at `014a88c`, all 30 reachable commits, merged PRs #1–#4
 - No dependencies, schema migration, remote assets or dashboard framework were introduced. No credential rotation or history rewriting was performed.
 
 CI and merge status must be checked on the PR and final master commit; local results alone do not establish cross-platform success.
+
+## Local-software product release — 2026-11-06
+
+The historical audit above is preserved. This review starts from master `4f5049635539c40612bc954887f5f00e3ae3d6e4` and does not establish live CafeBazaar compatibility.
+
+Confirmed defects and corrections:
+
+- Partial failures could return success, including at the app limit; empty runs could also return success. Deterministic CLI regressions now require nonzero status in these cases.
+- Exports did not protect WAL/SHM/journal destinations or preserve an existing output after a write failure. Added recovery-name/alias guards and atomic temporary-file publication.
+- App-detail responses were not compared with the requested package before persistence. Added request identifier validation and response identity matching.
+- Detail retries continued on access refusal. Stop application retries for 401/403/429; transport Retry-After handling is disabled so 429 is not retried by that layer.
+- Pages published a fictional dashboard and README described hosted import as a product feature. Publish the static `site/` product guide; preserve locally generated reports and their importer.
+
+The pinned design and web-ui-audit revisions remain unchanged. The brand register guided a forest/mint centered composition and custom response-flow SVG, with native sans typography (32–56px hero, 24–36px section headings), focusable code blocks, reduced motion, local assets, and a no-script/no-connect CSP. Automated Chromium screenshots and WCAG scans cover the new website and public portfolio route at all seven required widths. Merge-time Actions artifacts and job results are the verification record; no live marketplace request is used by the release tests.
+
+Known boundaries remain: page limits are per path, retries are layered, there is no global network budget, empty discovery can represent failure, optional nested-field types are not completely normalized, and current API access/shape compatibility is unverified. Raw SQLite can contain developer contacts; reports and CSV omit phone/email. Future source/API work requires authorized fixtures and separate scope.
+
+Visual review found and corrected fixed-height scaling of the architecture SVG on mobile; Chromium now checks its intrinsic aspect ratio. The existing local-report QA now waits on locator text instead of string evaluation, preserving the report CSP. Browser tooling is pinned to supported runner/package versions. Production portfolio QA covers the deferred analytics-loading window; the CafeBazaar route opts out through a default-off shared-layout prop without changing analytics defaults on other routes.

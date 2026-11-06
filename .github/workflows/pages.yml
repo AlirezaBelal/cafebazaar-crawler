@@ -1,52 +1,30 @@
 name: GitHub Pages
-
 on:
   push:
     branches: [master]
-    paths: ['src/**', 'docs/favicon.svg', '.github/workflows/pages.yml']
+    paths: ['site/**', 'tests/test_product_site.mjs', '.github/workflows/pages.yml']
   pull_request:
     branches: [master]
-    paths: ['src/**', 'docs/favicon.svg', '.github/workflows/pages.yml']
+    paths: ['site/**', 'tests/test_product_site.mjs', '.github/workflows/pages.yml']
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
-      - name: Generate the offline synthetic dashboard
-        run: |
-          mkdir -p docs
-          python src/main.py --demo --db "$RUNNER_TEMP/cafebazaar-demo.db"
-          cp "$RUNNER_TEMP/cafebazaar-demo-report.html" docs/index.html
-          python - <<'PY'
-          from pathlib import Path
-          page = Path('docs/index.html')
-          html = page.read_text(encoding='utf-8')
-          html = html.replace("img-src 'none'", "img-src 'self'")
-          html = html.replace('</head>', '<link rel="icon" href="./favicon.svg" type="image/svg+xml"></head>')
-          page.write_text(html, encoding='utf-8')
-          assert 'connect-src \'none\'' in html and 'img-src \'self\'' in html
-          assert 'fetch(' not in html and 'src="https://' not in html
-          PY
-      - name: Verify the generated dashboard
-        run: |
-          python -m unittest discover -s tests -p 'test_report_ui.py' -v
-          test -f docs/index.html
-          test -f docs/favicon.svg
+          node-version: 22
+      - run: node --test tests/test_product_site.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: site
   deploy:
     if: github.event_name != 'pull_request'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pages: write
@@ -56,8 +34,22 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - name: Deploy to GitHub Pages
+      - name: Deploy product website
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify published product and assets
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -eu
+          test "$SITE_URL" = 'https://alirezabelal.github.io/cafebazaar-crawler/'
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          curl --fail --silent --show-error --location --retry 6 --retry-all-errors --retry-delay 5 "$SITE_URL" --output "$response_file"
+          grep -Fq '<title>CafeBazaar Crawler — Local Python metadata collection</title>' "$response_file"
+          grep -Fq 'static product guide' "$response_file"
+          grep -Fq 'https://github.com/AlirezaBelal/cafebazaar-crawler' "$response_file"
+          grep -Fq 'href="#installation"' "$response_file"
+          for asset in styles.css assets/mark.svg assets/collection-flow.svg; do
+            curl --fail --silent --show-error --location --retry 6 --retry-all-errors --retry-delay 5 "${SITE_URL}${asset}" --output /dev/null
+          done

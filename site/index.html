@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123d32">
+  <meta name="description" content="CafeBazaar Crawler is local Python software for collecting permitted public app metadata through HTTP responses and storing it in SQLite.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; connect-src 'none'; img-src 'self'; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <link rel="canonical" href="https://alirezabelal.github.io/cafebazaar-crawler/">
+  <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <meta property="og:title" content="CafeBazaar Crawler — Your local metadata workspace">
+  <meta property="og:description" content="Collect deliberately. Parse supported responses. Keep SQLite and offline reports on your own computer.">
+  <meta property="og:url" content="https://alirezabelal.github.io/cafebazaar-crawler/">
+  <meta property="og:type" content="website">
+  <title>CafeBazaar Crawler — Local Python metadata collection</title>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="header wrap">
+  <a class="brand" href="#top"><img src="./assets/mark.svg" width="36" height="36" alt=""><span>CafeBazaar <strong>Crawler</strong></span></a>
+  <nav aria-label="Main navigation"><a href="#workflow">Workflow</a><a href="#installation">Installation</a><a href="#boundaries">Responsible use</a></nav>
+  <a class="header-link" href="https://github.com/AlirezaBelal/cafebazaar-crawler">View source</a>
+</header>
+<main id="main">
+  <section class="hero" id="top" aria-labelledby="hero-title">
+    <div class="wrap hero-inner">
+      <p class="eyebrow">Independent software · Python + HTTP + SQLite</p>
+      <h1 id="hero-title">Public metadata.<br><span>Private workspace.</span></h1>
+      <p class="hero-copy">Collect permitted CafeBazaar app metadata with a local Python tool. Read supported HTTP responses, validate records, and keep the resulting SQLite database on your computer.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/AlirezaBelal/cafebazaar-crawler">Get Started on GitHub</a><a class="button secondary" href="#installation">Installation Guide</a></div>
+      <p class="hero-note">This website is a static product guide. It does not collect marketplace data or accept datasets.</p>
+      <figure class="blueprint"><img src="./assets/collection-flow.svg" width="960" height="400" alt="Illustrated architecture: a local Python CLI requests permitted CafeBazaar responses, parses supported fields, and saves records into local SQLite."><figcaption>Architecture illustration · no live request, screenshot, or marketplace measurement</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="wrap overview section" aria-labelledby="overview-title">
+    <div><p class="section-label">A small tool with a clear purpose</p><h2 id="overview-title">From a permitted response<br>to a useful local record.</h2></div>
+    <div><p>CafeBazaar Crawler uses Python HTTP requests and an API-oriented adapter. It discovers categories and app listings, parses supported metadata, and writes records to SQLite.</p><p>You decide when it runs and which limits to apply. There is no hosted collector, account, or remote database to configure.</p><a class="inline-link" href="https://github.com/AlirezaBelal/cafebazaar-crawler/blob/master/PRODUCT.md">Read the technical scope</a></div>
+  </section>
+
+  <section class="workflow section" id="workflow" aria-labelledby="workflow-title"><div class="wrap">
+    <div class="section-heading"><p class="section-label">The collection path</p><h2 id="workflow-title">Define the scope. Keep the output.</h2><p>The real workflow runs in your terminal. The upstream API is unofficial and may change or become unavailable.</p></div>
+    <ol class="flow-list">
+      <li><span class="index">01</span><h3>Choose permitted pages</h3><p>Confirm access permission. Set category, subcategory, successful-app, and per-path page limits.</p></li>
+      <li><span class="index">02</span><h3>Request and parse</h3><p>The HTTP adapter handles supported responses with timeouts, retries, and repeated-page stopping.</p></li>
+      <li><span class="index">03</span><h3>Persist locally</h3><p>Supported app details are stored by package and source in the local <code>app_details</code> table.</p></li>
+      <li><span class="index">04</span><h3>Review offline</h3><p>Generate a Persian RTL HTML report or formula-safe CSV from the database you control.</p></li>
+    </ol>
+  </div></section>
+
+  <section class="wrap section capabilities" aria-labelledby="capabilities-title">
+    <div><p class="section-label">Built into the source</p><h2 id="capabilities-title">Focused collection.<br>Inspectable behavior.</h2><p>Useful controls for a deliberate local research workflow, with no claim of complete marketplace coverage.</p></div>
+    <dl class="capability-list">
+      <div><dt>Scoped discovery</dt><dd>Category and subcategory discovery, plus separate per-path listing and subcategory page limits.</dd></div>
+      <div><dt>Supported app fields</dt><dd>Package, title, category, version, install-range values, ratings, descriptions, and other available metadata.</dd></div>
+      <div><dt>Local SQLite persistence</dt><dd>Package/source keys replace existing records rather than creating duplicate rows. Saved data survives interruption.</dd></div>
+      <div><dt>Offline outputs</dt><dd>Searchable Persian HTML reports and safe CSV exports omit developer phone and email fields. Raw SQLite may contain those contacts.</dd></div>
+    </dl>
+  </section>
+
+  <section class="setup section" id="installation" aria-labelledby="install-title"><div class="wrap">
+    <div class="section-heading"><p class="section-label">Start with an offline run</p><h2 id="install-title">Your first dataset can be fictional.</h2><p>Python 3.9 or newer is required. The offline demo uses the Python standard library and makes no marketplace requests.</p></div>
+    <div class="setup-grid">
+      <article><span class="step">Step 1</span><h3>Get the source</h3><pre tabindex="0" aria-label="Clone the repository"><code>git clone https://github.com/AlirezaBelal/cafebazaar-crawler.git
+cd cafebazaar-crawler</code></pre><p>Use a terminal on Windows, macOS, or Linux.</p></article>
+      <article><span class="step">Step 2</span><h3>Try the local demo</h3><details open><summary>Windows PowerShell</summary><pre tabindex="0" aria-label="Windows offline demo"><code>py -3 -m venv .venv
+.\.venv\Scripts\python.exe src\main.py --demo</code></pre></details><details><summary>macOS or Linux</summary><pre tabindex="0" aria-label="macOS and Linux offline demo"><code>python3 -m venv .venv
+. .venv/bin/activate
+python src/main.py --demo</code></pre></details><p>Open <code>data/demo-report.html</code>. The demo creates twelve clearly fictional records. Choose a new <code>--db</code> path to run it again.</p></article>
+    </div>
+    <details class="live-guide"><summary>Set up a small, permitted collection</summary><div class="details-body"><p>First confirm that your intended access and use are allowed. Install the network dependencies inside the virtual environment:</p><pre tabindex="0" aria-label="Install network dependencies"><code># Windows PowerShell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+# macOS / Linux, with the environment activated
+python -m pip install -r requirements.txt</code></pre><p>Use the environment’s Python executable for this deliberately small example:</p><pre tabindex="0" aria-label="Bounded collection command"><code>python src/main.py --category-limit 1 --subcategory-limit 1 --max-apps 3 --max-list-pages 1 --max-subcategory-pages 1</code></pre><p><strong>These are not global request limits.</strong> The app limit counts successful saves; page limits apply separately per path. Retries can issue additional HTTP requests. Keep conservative delays and stop if access is refused.</p><p>The default database is <code>data/cafebazaar_results.db</code>. Running without arguments makes no network requests. <code>--full</code> explicitly enables an unbounded collection and should not be a first run.</p></div></details>
+    <div class="output-guide"><h3>Read your local output</h3><pre tabindex="0" aria-label="Generate local reports and CSV"><code>python src/main.py --db data/my-run.db --report data/my-report.html
+python src/main.py --db data/my-run.db --export-csv data/my-apps.csv</code></pre><p>Reports and CSV are generated offline. Keep raw SQLite databases and logs private, and review their contents before sharing.</p></div>
+  </div></section>
+
+  <section class="wrap section trust" id="boundaries" aria-labelledby="trust-title">
+    <div><p class="section-label">Responsible collection</p><h2 id="trust-title">Permission comes<br>before a request.</h2><p>Independent project. Not operated, endorsed, or officially supported by CafeBazaar.</p></div>
+    <ul><li>Use only public data you are authorized to access and process. Review applicable terms and technical access rules.</li><li>Never bypass authentication, CAPTCHA, rate limits, or anti-bot controls.</li><li>Developer contacts need additional care. HTML and CSV omit phone and email; the raw database may retain them.</li><li>Offline tests do not establish current API availability or live response compatibility.</li><li>Empty, failed, or partially successful responses do not establish complete catalogue coverage.</li></ul>
+  </section>
+  <section class="closing"><div class="wrap"><div><p class="section-label">Open source. Locally executed.</p><h2>Build your own research workflow.</h2><p>Start with the source, try the offline demo, and understand the limits before collecting.</p></div><div class="actions"><a class="button primary" href="https://github.com/AlirezaBelal/cafebazaar-crawler">Get Started on GitHub</a><a class="button secondary" href="https://github.com/AlirezaBelal/cafebazaar-crawler#installation">Installation Guide</a></div></div></section>
+</main>
+<footer class="wrap footer"><a class="brand" href="#top"><img src="./assets/mark.svg" width="28" height="28" alt=""><span>CafeBazaar Crawler</span></a><nav aria-label="Footer navigation"><a href="https://github.com/AlirezaBelal/cafebazaar-crawler">Source</a><a href="https://github.com/AlirezaBelal/cafebazaar-crawler/blob/master/PRODUCT.md">Documentation</a><a href="https://alirezabelal.github.io/work/lab/cafebazaar-crawler/">Portfolio</a><a href="https://github.com/AlirezaBelal/cafebazaar-crawler/blob/master/LICENSE">MIT license</a></nav></footer>
+</body></html>

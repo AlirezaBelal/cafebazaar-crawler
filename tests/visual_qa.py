@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +86,7 @@ def main():
                             encoding="utf-8-sig",
                         )
                         page.locator("#local-data-file").set_input_files(str(import_file))
-                        page.wait_for_function("document.querySelector('#local-data-status').textContent.includes('فقط در این زبانه پردازش شد.')")
+                        expect(page.locator("#local-data-status")).to_contain_text("فقط در این زبانه پردازش شد.")
                         assert page.locator("#apps tbody tr").count() == 2
                         assert 'Imported, "quoted"' in page.locator(".app-title").all_text_contents()
                         assert page.locator("img").count() == 0, "Imported text must not become executable markup"

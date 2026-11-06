@@ -1,5 +1,6 @@
 import json
 import random
+import re
 import time
 
 import requests
@@ -18,6 +19,7 @@ def get_session():
         backoff_factor=0.5,  # Backoff factor for sleep time between retries
         status_forcelist=[500, 502, 503, 504],  # HTTP status codes to retry on
         allowed_methods=["POST", "GET"],  # HTTP methods to retry on
+        respect_retry_after_header=False,  # Do not retry access refusals such as 429.
     )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
@@ -355,6 +357,8 @@ def extract_apps_from_page_request(response_data):
 
 
 def fetch_app_details(package_name, subcategory):
+    if not isinstance(package_name, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+", package_name):
+        raise ValueError("Invalid application package identifier")
     api_url = "https://api.cafebazaar.ir/rest-v1/process/AppDetailsV2Request"
     headers = {
         "accept": "application/json, text/plain, */*",
@@ -397,7 +401,10 @@ def fetch_app_details(package_name, subcategory):
 
             # Check if the response was successful
             if response.status_code == 200:
-                return extract_app_details(response.json(), subcategory)
+                return extract_app_details(response.json(), subcategory, expected_package=package_name)
+            elif response.status_code in (401, 403, 429):
+                print("Access refused or rate limited; no detail retry will be attempted.")
+                return None
             else:
                 print(f"Failed to fetch data, status code: {response.status_code}, attempt {attempt + 1}/{max_retries}")
 
@@ -419,13 +426,15 @@ def fetch_app_details(package_name, subcategory):
     return None
 
 
-def extract_app_details(app_data, subcategory):
+def extract_app_details(app_data, subcategory, expected_package=None):
     reply = app_data.get('singleReply', {}).get('appDetailsV2Reply', {})
     if not isinstance(reply, dict) or not isinstance(reply.get('package'), dict):
         raise ValueError("App details response has no package")
     package_name = reply['package'].get('name')
     if not isinstance(package_name, str) or not package_name.strip():
         raise ValueError("App details response has no valid package name")
+    if expected_package is not None and package_name != expected_package:
+        raise ValueError("Response package does not match the requested application")
     tags = [
         tag.get('title')
         for tag in reply.get('meta', {}).get('tags', [])

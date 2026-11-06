@@ -1,130 +1,102 @@
 # CafeBazaar Crawler
 
-**A small, local-first tool for exploring public CafeBazaar Android app metadata.**
+**Local Python software for collecting permitted public CafeBazaar app metadata into SQLite.**
 
-Collect permitted public app information to SQLite, browse it in a searchable **offline HTML report**, or export a safe CSV. No account, cloud service, API key, dashboard server, or telemetry is required.
+[Product website](https://alirezabelal.github.io/cafebazaar-crawler/) · [Portfolio](https://alirezabelal.github.io/work/lab/cafebazaar-crawler/) · [راهنمای فارسی](QUICKSTART.fa.md) · [Product scope](PRODUCT.md)
 
-> This is an independent research tool, **not an official CafeBazaar product**. Upstream API availability and permission to collect data may vary. The offline product works without CafeBazaar access; successful live extraction is not guaranteed.
+[![Offline tests](https://github.com/AlirezaBelal/cafebazaar-crawler/actions/workflows/tests.yml/badge.svg)](https://github.com/AlirezaBelal/cafebazaar-crawler/actions/workflows/tests.yml)
 
-## Start in 30 seconds — no network
+The collector runs on your computer. Python HTTP requests retrieve supported responses, the adapter parses app metadata, and SQLite stores local records. Optional Persian RTL HTML reports and CSV exports support offline review. The static product website documents installation; it does not run a collector or accept datasets.
 
-Requirements: **Python 3.9 or newer**. The offline demo uses only the Python standard library.
+This independent project is not an official CafeBazaar service. Current live API availability and compatibility have not been verified for this release. Public endpoint availability does not establish collection permission.
 
-**Windows:** Double-click `scripts/desktop-demo.cmd`. It generates twelve clearly labelled **synthetic** apps and opens a local HTML report.
+## Installation
 
-Or use a terminal (Windows, macOS, Linux):
+Requires **Python 3.9+**. No browser or Selenium is needed. The offline demo uses only the Python standard library.
 
 ```bash
+git clone https://github.com/AlirezaBelal/cafebazaar-crawler.git
+cd cafebazaar-crawler
+```
+
+**Windows PowerShell**
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe src\main.py --demo
+```
+
+**macOS / Linux**
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
 python src/main.py --demo
 ```
 
-Open `data/demo-report.html` in your browser. **No real apps are fetched.** If the demo already exists, use `--db data/another-demo.db`; the tool will not overwrite an existing database with synthetic records.
+Open `data/demo-report.html`. This creates twelve fictional records in `data/demo.db` with no network requests. It preserves existing demo databases: use `--db data/demo-2.db` for another run. Windows also provides `scripts/desktop-demo.cmd`.
 
-The report uses a new Persian-first premium RTL dashboard with responsive cards, charts, a searchable and sortable app table, a category filter, accessible empty states, and an optional dark theme. All assets are embedded in the generated HTML; it needs no server, CDN, or internet access. It is a standalone HTML file with no external dependencies. It intentionally omits contact details.
+## Small, permitted collection
 
-## Collect real public metadata (optional)
+Confirm applicable terms and technical access rules first. Never bypass authentication, CAPTCHA, rate limits, or anti-bot controls. Stop when access is refused.
 
-Only do this if you are allowed to access the underlying public endpoints. Respect CafeBazaar's terms, robots/access policies, and reasonable request rates.
-
-First create a virtual environment and install the network dependencies:
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe src\main.py --category-limit 1 --subcategory-limit 1 --max-apps 3 --max-list-pages 1 --max-subcategory-pages 1
+```
 
 ```bash
-python -m venv .venv
-# Windows PowerShell: .\.venv\Scripts\Activate.ps1
-# macOS / Linux: source .venv/bin/activate
+# macOS / Linux, with the environment activated
 python -m pip install -r requirements.txt
+python src/main.py --category-limit 1 --subcategory-limit 1 --max-apps 3 --max-list-pages 1 --max-subcategory-pages 1
 ```
 
-Run a **small bounded crawl** (rather than an unbounded one):
+The default database is `data/cafebazaar_results.db`; choose another with `--db`. Running without arguments makes no requests. `--full` deliberately opts into unbounded collection and should not be a first run.
+
+**These are not global request limits.** `--max-apps` counts successful saves. Listing pages are limited per subcategory; subcategory pages per category. `0` means unlimited. Discovery precedes app saving, and layered retries can issue additional requests. Keep conservative delays: defaults are 10 seconds per category, 2 seconds per subcategory, and 100 milliseconds per detail loop, with extra pagination/retry delays. Environment settings are `CAFEBAZAAR_CATEGORY_DELAY_MS`, `CAFEBAZAAR_SUBCATEGORY_DELAY_MS`, and `CAFEBAZAAR_APP_DELAY_MS`.
+
+## Local output
+
+Using the virtual environment's Python executable:
 
 ```bash
-python src/main.py --category-limit 1 --subcategory-limit 1 --max-apps 5 --max-list-pages 1 --max-subcategory-pages 1
-```
-
-The database is saved to `data/cafebazaar_results.db` by default. `--max-apps` caps successfully saved app details, while `--max-list-pages` and `--max-subcategory-pages` separately limit how many API listing pages are requested **per path**. Those flags are not a global request cap, and retries may make additional requests. To reduce pressure, keep conservative delays.
-
-A plain `python src/main.py` intentionally **does not send requests**. To opt into an unbounded collection after reviewing source permissions, use `python src/main.py --full`. Do not use this as a first run.
-
-## Browse or export saved data
-
-```bash
-# Produce a responsive offline browser report (up to 500 rows by default)
-python src/main.py --report data/report.html
-
-# Export all selected metadata (UTF-8 with spreadsheet formula protection)
-python src/main.py --export-csv data/apps.csv
-
-# Use a custom SQLite database
 python src/main.py --db data/my-run.db --report data/my-report.html
+python src/main.py --db data/my-run.db --export-csv data/my-apps.csv
 ```
 
-The HTML report displays up to 1,000 records, configurable with `--report-limit`; CSV exports the selected fields for all available rows. For larger collections, use CSV and further analysis tools. Generated reports and local databases are not committed to Git.
+Reports provide Persian RTL search, filters, sorting, themes, and a local CSV/JSON importer. That importer remains in locally generated reports only. Reports show 500 rows by default (`--report-limit 1..1000`); CSV includes all selected rows and currently loads them into memory.
 
-The SQLite table `app_details` uses `(package_name, source)` as its primary key and is compatible in structure with the companion [Myket Crawler](https://github.com/AlirezaBelal/myket-crawler).
+HTML and CSV omit developer phone and email fields. CSV neutralizes formula-like cells. Exports publish atomically and cannot replace the source database or its WAL/SHM/journal files. Raw SQLite may contain developer contacts: keep databases and logs private and review obligations before sharing. SQLite uses the `app_details` table with `(package_name, source)` identity; repeat records replace the existing row.
 
-## Analyze an authorized local export in the browser
-
-The hosted and generated reports accept CSV or JSON files using this project's `app_details` fields. Files are read with browser APIs and processed in the current tab only; nothing is uploaded, stored in browser storage, or sent to a marketplace. The importer is capped at 5 MiB and 5,000 rows, ignores unrecognized columns (including developer contact fields), and validates identifiers and numeric values. Search, category filtering, sorting, and summary visualizations update for the selected file. Use **Reset to report** to discard the in-memory view.
-
-SQLite files are not parsed in the browser. Generate a CSV locally with `python src/main.py --db data/my-run.db --export-csv data/apps.csv`, then select that CSV. JSON is accepted as an array of rows or an object with an `app_details` or `records` array. The bundled Pages report remains fictional sample data until a file is explicitly selected.
-
-## Verify a real collection from your own computer
-
-A small **opt-in** end-to-end live smoke checks one category page, one subcategory page, one app list page, one app detail response and a write to a **temporary database**:
+## Tests
 
 ```bash
-python tests/live_smoke.py --yes-live
+python -m compileall -q src tests
+python -m unittest discover -s tests -v
+node --test tests/test_report_import.cjs tests/test_product_site.mjs
 ```
 
-This test needs installed dependencies and Internet access. It runs only when explicitly requested; it is **not executed automatically by CI** and does not retain a dataset. It may fail due to DNS, geographic access restrictions, API changes, upstream errors, or site policy. If it fails, do not bypass access restrictions.
+CI uses synthetic fixtures and temporary databases on Python 3.9/3.14 Ubuntu and Python 3.12 Windows. Chromium checks the new product website and portfolio at seven widths; screenshots and WCAG reports are Actions artifacts. Browser tooling is CI-only.
 
-## Quality and safety
+`python tests/live_smoke.py --yes-live` is a separate opt-in live test. Do not run it without confirming authorization. It was not run for this release; offline success does not prove current API compatibility.
 
-- Offline, deterministic `unittest` tests run through GitHub Actions.
-- Inputs and package IDs are validated where possible; duplicate packages are skipped within a crawl.
-- Requests have timeouts and retries; pagination stops on repeated pages and supports explicit page budgets.
-- SQLite updates reuse the same package/source key, rather than accumulating duplicate rows.
-- Report values are HTML-escaped; developer email and phone fields are not included in the report.
-- CSV protects spreadsheet cells that resemble formulas.
-- Local demo never calls the network; generated demo records are fictional.
-- Ctrl+C stops real crawling and preserves already saved database rows.
-- Secrets, SQLite databases, generated HTML/CSV, environments, and logs should never be committed.
+## Documentation and troubleshooting
 
-Check `python src/main.py --help` for complete options. All numeric limits are nonnegative; `0` means unlimited. Network delays are configured via `CAFEBAZAAR_CATEGORY_DELAY_MS` (default 10000), `CAFEBAZAAR_SUBCATEGORY_DELAY_MS` (default 2000), and `CAFEBAZAAR_APP_DELAY_MS` (default 100). Set custom output with `--db` or the environment variables `CAFEBAZAAR_DATA_DIR` and `CAFEBAZAAR_DB_PATH`.
-
-## Project layout
+- [Architecture, supported scope, exit codes, and limitations](PRODUCT.md)
+- [Persian quickstart](QUICKSTART.fa.md)
+- [Preserved audit history and release findings](AUDIT.md)
+- Existing demo: choose a fresh `--db` path.
+- Python unavailable on Windows: install Python 3.9+ and confirm `py -3 --version`.
+- Locked database: close competing writers, retain a backup, and retry.
+- API errors: stop and review access restrictions or changed response shapes; do not bypass them.
 
 ```text
-src/main.py                 Command-line interface and safe entry point
-src/bazarService.py         CafeBazaar network adapter
-src/models/AppDetails.py    Shared SQLite record model
-src/local_report.py         Offline demo, HTML report and CSV export
-scripts/desktop-demo.cmd    Windows demo launcher
-tests/                     Offline tests and opt-in live_smoke.py
-data/                      Ignored local datasets and reports
+src/       Local CLI, HTTP adapter, SQLite model, offline outputs
+site/      Static product website and original SVG assets
+tests/     Deterministic regressions and browser QA
+scripts/   Windows demo launcher
+data/      Ignored local databases and outputs
 ```
 
-## Project status and licensing
-
-### Troubleshooting and browser checks
-
-- An existing demo database is deliberately preserved. Choose a fresh `--db data/demo-2.db` path.
-- Report and CSV destinations must differ from the source database and must not use `.db`, `.sqlite` or `.sqlite3` extensions.
-- For a locked SQLite database, close applications writing to it and retry. Keep a backup before editing data.
-- If Windows cannot run `python` or `py`, install Python 3.9+ and verify `py -3 --version` in a new terminal.
-- Browser QA: install `playwright`, run `python -m playwright install chromium`, then `python tests/visual_qa.py`. It checks seven widths from 320 to 1920 pixels and writes ignored screenshots to `artifacts/visual-qa/`.
-- To test an already installed Chrome instead, set `PLAYWRIGHT_CHANNEL=chrome` (PowerShell: `$env:PLAYWRIGHT_CHANNEL='chrome'`) before running browser QA.
-
-The Python launcher remains the lightweight distribution option. A desktop executable would need separate platform builds, signing and update maintenance; it is not currently provided.
-
-Offline demo, reporting, CSV and deterministic tests are ready to use once verified by CI. Live extraction is **best effort** and depends on the current upstream API; do not claim production coverage or completeness without a successful authorized live smoke test.
-
-MIT license — see [LICENSE](LICENSE).
-
-**Privacy:** Research may collect public developer contacts into your *local* SQLite file. Treat it as personal data if applicable. The offline HTML report and CSV intentionally exclude contact fields. Review and remove sensitive data before publishing or sharing any dataset.
-
-## Live browser demo
-
-[Open the GitHub Pages demo](https://alirezabelal.github.io/cafebazaar-crawler/)
-
-The browser demo is an offline report built from fictional app listings. It supports search, category filters, sorting, app details, and sample metrics; it does not fetch CafeBazaar.
+Licensed under [MIT](LICENSE). No telemetry, public proxy, hosted database, or runtime web framework is included.
