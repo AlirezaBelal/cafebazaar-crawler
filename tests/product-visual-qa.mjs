@@ -30,6 +30,7 @@ for(const [name,url] of sites) for(const width of [320,375,390,768,1024,1440,192
  const accessibility=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
  await writeFile(out+'/'+name+'-'+width+'-accessibility.json',JSON.stringify(accessibility,null,2));
  assert.deepEqual(accessibility.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],'accessibility violations');
+ if(name==='product') assert(await page.locator('.blueprint img').evaluate(e=>Math.abs(e.clientWidth/e.clientHeight-e.naturalWidth/e.naturalHeight)<.02),'illustration aspect ratio');
  if(name==='product') assert(await page.locator('h1').evaluate(e=>parseFloat(getComputedStyle(e).fontSize)<=60),'compact hero scale');
  const external=requests.filter(u=>/^https?:/.test(u)&&new URL(u).origin!==new URL(url).origin);
  assert.equal(external.length,0,'unexpected external request '+external.join(','));
