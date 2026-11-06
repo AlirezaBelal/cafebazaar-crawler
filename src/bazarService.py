@@ -11,15 +11,22 @@ import config
 from models.AppDetails import AppDetails, Source
 
 
+class _ConservativeRetry(Retry):
+    """Honor server backoff without retrying access refusals."""
+    def is_retry(self, method, status_code, has_retry_after=False):
+        if status_code in (401, 403, 429):
+            return False
+        return super().is_retry(method, status_code, has_retry_after)
+
+
 # Configure retry strategy
 def get_session():
     session = requests.Session()
-    retry = Retry(
+    retry = _ConservativeRetry(
         total=5,  # Maximum number of retries
         backoff_factor=0.5,  # Backoff factor for sleep time between retries
         status_forcelist=[500, 502, 503, 504],  # HTTP status codes to retry on
         allowed_methods=["POST", "GET"],  # HTTP methods to retry on
-        respect_retry_after_header=False,  # Do not retry access refusals such as 429.
     )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
