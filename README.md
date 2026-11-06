@@ -62,6 +62,12 @@ The HTML report displays up to 1,000 records, configurable with `--report-limit`
 
 The SQLite table `app_details` uses `(package_name, source)` as its primary key and is compatible in structure with the companion [Myket Crawler](https://github.com/AlirezaBelal/myket-crawler).
 
+## Analyze an authorized local export in the browser
+
+The hosted and generated reports accept CSV or JSON files using this project's `app_details` fields. Files are read with browser APIs and processed in the current tab only; nothing is uploaded, stored in browser storage, or sent to a marketplace. The importer is capped at 5 MiB and 5,000 rows, ignores unrecognized columns (including developer contact fields), and validates identifiers and numeric values. Search, category filtering, sorting, and summary visualizations update for the selected file. Use **Reset to report** to discard the in-memory view.
+
+SQLite files are not parsed in the browser. Generate a CSV locally with `python src/main.py --db data/my-run.db --export-csv data/apps.csv`, then select that CSV. JSON is accepted as an array of rows or an object with an `app_details` or `records` array. The bundled Pages report remains fictional sample data until a file is explicitly selected.
+
 ## Verify a real collection from your own computer
 
 A small **opt-in** end-to-end live smoke checks one category page, one subcategory page, one app list page, one app detail response and a write to a **temporary database**:
