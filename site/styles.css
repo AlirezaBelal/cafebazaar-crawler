@@ -8,7 +8,7 @@ img{display:block;max-width:100%;height:auto}
 a{color:inherit;text-underline-offset:.22em}
 a:hover{color:var(--green)}
 a,summary{touch-action:manipulation}
-a:focus-visible,summary:focus-visible,pre:focus-visible{outline:3px solid #a54416;outline-offset:4px}
+a:focus-visible,summary:focus-visible,pre:focus-visible{outline:3px solid white;outline-offset:3px;box-shadow:0 0 0 6px var(--green)}
 h1,h2,h3,p{margin-top:0}
 h1,h2{font-weight:650;letter-spacing:-.035em;text-wrap:balance}
 h1{font-size:clamp(2.1rem,4.2vw,3.5rem);line-height:1.12;margin-bottom:1.3rem}
