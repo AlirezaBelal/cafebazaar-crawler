@@ -2,10 +2,10 @@ name: GitHub Pages
 on:
   push:
     branches: [master]
-    paths: ['site/**', 'tests/test_product_site.mjs', '.github/workflows/pages.yml']
+    paths: ['site/**', 'tests/test_product_site.mjs', '.github/workflows/pages.yml', '.github/workflows/product-visual-qa.yml']
   pull_request:
     branches: [master]
-    paths: ['site/**', 'tests/test_product_site.mjs', '.github/workflows/pages.yml']
+    paths: ['site/**', 'tests/test_product_site.mjs', '.github/workflows/pages.yml', '.github/workflows/product-visual-qa.yml']
   workflow_dispatch:
 permissions:
   contents: read
